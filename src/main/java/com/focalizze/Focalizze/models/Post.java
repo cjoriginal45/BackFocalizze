@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
 import java.time.LocalDateTime;
 
 @NoArgsConstructor
@@ -14,26 +13,23 @@ import java.time.LocalDateTime;
 @Builder
 @Data
 @Entity
-@Table(name = "report_tbl")
-public class Report {
+@Table(name = "post_tbl")
+public class Post {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String reason;
+    @Column(nullable = false)
+    private String content;
 
-    private ReportStatus status;
+    private Integer position;
+
+    private Integer characterLimit;
 
     private LocalDateTime createdAt;
 
-    private User reporter;
-
     @ManyToOne
-    @JoinColumn(name="user_id") //foreign key
-    private User user;
-
-    @ManyToOne
-    @JoinColumn(name="thread_id")
+    @JoinColumn(name = "thread_id", nullable = false)
     private ThreadClass thread;
 }
