@@ -57,6 +57,10 @@ public class ThreadClass {
     @OneToMany(mappedBy="thread")
     private List<NotificationClass> notifications;
 
+    @ManyToOne
+    @JoinColumn(name="category_id")
+    private CategoryClass category;
+
     public ThreadClass(){
         this.posts = new ArrayList<>();
         this.reports = new ArrayList<>();

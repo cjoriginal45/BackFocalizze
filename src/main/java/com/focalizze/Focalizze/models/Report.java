@@ -23,15 +23,18 @@ public class Report {
 
     private String reason;
 
+    @Enumerated(EnumType.STRING)
     private ReportStatus status;
 
     private LocalDateTime createdAt;
 
-    private User reporter;
+    @ManyToOne
+    @JoinColumn(name = "reporter_id")
+    private User userReporter;      // Usuario que hace el reporte
 
     @ManyToOne
-    @JoinColumn(name="user_id") //foreign key
-    private User user;
+    @JoinColumn(name = "user_reported_id") // Cambié el nombre para claridad
+    private User userReported;      // Usuario que es reportado
 
     @ManyToOne
     @JoinColumn(name="thread_id")

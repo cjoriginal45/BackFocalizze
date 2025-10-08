@@ -6,10 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Data
@@ -27,4 +27,12 @@ public class CategoryClass {
 
     @ManyToMany(mappedBy="categories") //category depende de user
     private Set<User> users;
+
+    @OneToMany(mappedBy="category")
+    private List<ThreadClass> threads;
+
+
+    public CategoryClass(){
+        this.threads = new ArrayList<>();
+    }
 }

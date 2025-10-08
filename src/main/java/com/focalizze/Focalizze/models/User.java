@@ -40,6 +40,7 @@ public class User {
 
     private Integer dailyThreadsRemaining;
 
+    @Enumerated(EnumType.STRING)
     private UserRole role;
 
     private Integer followingCount;
@@ -57,9 +58,6 @@ public class User {
     private List<ThreadClass> threads;
 
     @OneToMany(mappedBy="user")
-    private List<Report> reports;
-
-    @OneToMany(mappedBy="user")
     private List<NotificationClass> notifications;
 
     @OneToMany(mappedBy="user")
@@ -67,6 +65,12 @@ public class User {
 
     @OneToMany(mappedBy="user")
     private List<Like> likes;
+
+    @OneToMany(mappedBy = "userReporter")
+    private List<Report> reportsMade;
+
+    @OneToMany(mappedBy = "userReported")
+    private List<Report> reportsReceived;
 
     @ManyToMany
     @JoinTable(
@@ -89,8 +93,9 @@ public class User {
         this.followers = new ArrayList<>();
         this.following = new ArrayList<>();
         this.likes = new ArrayList<>();
-        this.reports = new ArrayList<>();
         this.threads = new ArrayList<>();
         this.notifications = new ArrayList<>();
+        this.reportsMade = new ArrayList<>();
+        this.reportsReceived = new ArrayList<>();
     }
 }
