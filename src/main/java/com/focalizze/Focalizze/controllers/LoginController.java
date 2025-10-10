@@ -41,11 +41,13 @@ public class LoginController {
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequest) {
 
         // AUTHENTICATION WITH SPRING SECURITY
+        System.out.println("contrasenia: "+loginRequest.password());
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(loginRequest.identifier(), loginRequest.password())
             );
         } catch (Exception e) {
+            System.out.println("exception: "+e);
             // Si las credenciales son inválidas, devolvemos un error 401 Unauthorized.
             // If the credentials are invalid, we return a 401 Unauthorized error.
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -62,6 +64,8 @@ public class LoginController {
         // Generamos el token JWT.
         // We generate the JWT token.
         final String token = jwtUtil.generateToken(userDetails);
+
+        System.out.println("token: "+ token);
 
         // Le pasamos la entidad 'user' y el 'token' al mapper.
         // We pass the 'user' entity and the 'token' to the mapper.
