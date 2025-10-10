@@ -1,22 +1,22 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
+import lombok.*;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @AllArgsConstructor
 @Builder
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = {"id", "username", "email"})
 @Entity
 @Table(name="user_tbl")
-public class User {
+public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -97,5 +97,78 @@ public class User {
         this.notifications = new ArrayList<>();
         this.reportsMade = new ArrayList<>();
         this.reportsReceived = new ArrayList<>();
+    }
+
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority(this.getRole().name()));
+    }
+
+    @Override
+    public String getPassword() {
+        return this.password;
+    }
+
+    @Override
+    public String getUsername() {
+        return this.username;
+    }
+
+
+    @Override
+    public boolean isAccountNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isAccountNonLocked() {
+        return true;
+    }
+
+    @Override
+    public boolean isCredentialsNonExpired() {
+        return true;
+    }
+
+    @Override
+    public boolean isEnabled() {
+        return true;
+    }
+
+    public User(Long id, String username, String email, String password) {
+        this.id = id;
+        this.username = username;
+        this.email = email;
+        this.password = password;
+    }
+
+    @Override
+    public String toString() {
+        return "User{" +
+                "id=" + id +
+                ", username='" + username + '\'' +
+                ", email='" + email + '\'' +
+                ", password='" + password + '\'' +
+                ", displayName='" + displayName + '\'' +
+                ", biography='" + biography + '\'' +
+                ", avatarUrl='" + avatarUrl + '\'' +
+                ", dailyThreadsRemaining=" + dailyThreadsRemaining +
+                ", role=" + role +
+                ", followingCount=" + followingCount +
+                ", followersCount=" + followersCount +
+                ", dailyInteractionsRemaining=" + dailyInteractionsRemaining +
+                ", createdAt=" + createdAt +
+                ", savedThreads=" + savedThreads +
+                ", threads=" + threads +
+                ", notifications=" + notifications +
+                ", comments=" + comments +
+                ", likes=" + likes +
+                ", reportsMade=" + reportsMade +
+                ", reportsReceived=" + reportsReceived +
+                ", categories=" + categories +
+                ", following=" + following +
+                ", followers=" + followers +
+                '}';
     }
 }
