@@ -2,10 +2,7 @@ package com.focalizze.Focalizze.dto.mappers;
 
 import com.focalizze.Focalizze.dto.LoginResponseDto;
 import com.focalizze.Focalizze.models.User;
-import com.focalizze.Focalizze.services.UserService;
 import org.springframework.stereotype.Component;
-
-import java.util.Optional;
 
 @Component
 public class LoginMapper {

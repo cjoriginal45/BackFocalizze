@@ -5,7 +5,6 @@ import com.focalizze.Focalizze.dto.LoginResponseDto;
 import com.focalizze.Focalizze.dto.mappers.LoginMapper;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.UserDetailsService;
-import com.focalizze.Focalizze.services.UserService;
 import com.focalizze.Focalizze.utils.JwtUtil;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
