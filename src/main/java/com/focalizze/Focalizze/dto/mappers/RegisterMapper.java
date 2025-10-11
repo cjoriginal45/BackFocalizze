@@ -13,7 +13,7 @@ public class RegisterMapper {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getEmail(),
-                "¡User registered successfully! / ¡Usuario registrado exitosamente!"
+                "¡Usuario registrado exitosamente!"
 
         );
     }

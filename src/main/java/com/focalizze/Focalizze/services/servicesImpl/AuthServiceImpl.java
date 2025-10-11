@@ -35,16 +35,16 @@ public class AuthServiceImpl implements AuthService {
 
         // Validate passwords match / Validar la coincidencia de contraseñas
         if (!registerRequest.password().equals(registerRequest.confirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match / Las contraseñas no coinciden");
+            throw new IllegalArgumentException("Las contraseñas no coinciden");
         }
 
         // Check if user already exists / Comprueba si el usuario ya existe
         if (!userRepository.findUserNameAvailable(registerRequest.username())) {
-            throw new UserAlreadyExistsException("Username is already taken / El nombre de usuario ya está en uso");
+            throw new UserAlreadyExistsException("El nombre de usuario ya está en uso");
         }
 
         if (userRepository.findByEmail(registerRequest.email()).isPresent()) {
-            throw new UserAlreadyExistsException("Email is already registered / El correo electrónico ya está registrado");
+            throw new UserAlreadyExistsException("El correo electrónico ya está registrado");
         }
 
         // Create and save user / Crear y guardar usuario
