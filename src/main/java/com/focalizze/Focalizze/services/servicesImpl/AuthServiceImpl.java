@@ -38,8 +38,8 @@ public class AuthServiceImpl implements AuthService {
             throw new IllegalArgumentException("Passwords do not match / Las contraseñas no coinciden");
         }
 
-        // Check if user already exists / Compruebe si el usuario ya existe
-        if (userRepository.findByUsername(registerRequest.username()).isPresent()) {
+        // Check if user already exists / Comprueba si el usuario ya existe
+        if (!userRepository.findUserNameAvailable(registerRequest.username())) {
             throw new UserAlreadyExistsException("Username is already taken / El nombre de usuario ya está en uso");
         }
 
