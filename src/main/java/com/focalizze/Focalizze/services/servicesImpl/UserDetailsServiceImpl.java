@@ -1,7 +1,7 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
 import com.focalizze.Focalizze.repository.UserRepository;
-import com.focalizze.Focalizze.services.UserDetailsService;
+import org.springframework.security.core.userdetails.UserDetailsService;
 
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
