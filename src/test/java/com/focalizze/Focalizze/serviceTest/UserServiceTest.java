@@ -129,28 +129,25 @@ public class UserServiceTest {
         // --- Caso 1: username ---
         given(userRepository.findByUsernameOrEmail("testuser","testuser")).willReturn(Optional.of(testUser));
 
-        // When: Ejecutamos el método del servicio que queremos probar
+        // When:
         Optional<User> foundUser = userService.findUserByUsernameOrEmail("testuser","testuser");
 
-        // Then: Verificamos el resultado
+        // Then:
         assertThat(foundUser).isPresent();
         assertThat(foundUser.get()).isEqualTo(testUser);
 
-        // Opcional: Verificar que el método del repositorio fue llamado
         verify(userRepository).findByUsernameOrEmail("testuser","testuser");
-
 
         // --- Caso 2: email ---
         given(userRepository.findByUsernameOrEmail("test@email.com","test@email.com")).willReturn(Optional.of(testUser));
 
-        // When: Ejecutamos el método del servicio que queremos probar
+        // When:
         Optional<User> foundUserEmail = userService.findUserByUsernameOrEmail("test@email.com","test@email.com");
 
-        // Then: Verificamos el resultado
+        // Then:
         assertThat(foundUserEmail).isPresent();
         assertThat(foundUserEmail.get()).isEqualTo(testUser);
 
-        // Opcional: Verificar que el método del repositorio fue llamado
         verify(userRepository).findByUsernameOrEmail("test@email.com","test@email.com");
 
     }
