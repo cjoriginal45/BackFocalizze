@@ -184,4 +184,35 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value("El email ya está registrado"));
     }
 
+    /**
+     * Prueba: Error cuando las contraseñas no coinciden
+     * Verifica que cuando el servicio lanza IllegalArgumentException por contraseñas diferentes:
+     * - Retorna status HTTP 400 (Bad Request)
+     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
+     * - El GlobalExceptionHandler maneja correctamente la excepción
+     * /
+     * Test: Error when passwords do not match
+     * Verify that when the service throws an IllegalArgumentException for different passwords:
+     * - Return HTTP status 400 (Bad Request)
+     * - Return the specific error message in the response body
+     * - The GlobalExceptionHandler correctly handles the exception
+     */
+    @Test
+    @DisplayName("Debería devolver 400 Bad Request cuando las contraseñas no coinciden")
+    void registerUser_WhenPasswordsDoNotMatch_ShouldReturn400BadRequest() throws Exception {
+        // Given: Configurar el mock del servicio para lanzar excepción por contraseñas no coincidentes
+        // Configure the service mock to throw an exception for mismatched passwords
+        given(authService.registerUser(any(RegisterRequest.class)))
+                .willThrow(new IllegalArgumentException("Las contraseñas no coinciden"));
+
+        // When & Then: Ejecutar petición y verificar error 400 Bad Request
+        // Execute request and check for 400 Bad Request error
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest()) // Verificar status 400 Bad Request
+                .andExpect(jsonPath("$.error").value("Las contraseñas no coinciden")); // Verificar mensaje de error
+    }
+
 }
