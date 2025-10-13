@@ -153,4 +153,35 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.error").value("El nombre de usuario ya está en uso"));
     }
 
+    /**
+     * Prueba: Error cuando el email ya existe
+     * Verifica que cuando el servicio lanza UserAlreadyExistsException por email duplicado:
+     * - Retorna status HTTP 409 (Conflict)
+     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
+     * - El GlobalExceptionHandler maneja correctamente la excepción
+     * /
+     * Test: Error when email already exists
+     * Verify that when the service throws a UserAlreadyExistsException for a duplicate email:
+     * - Returns HTTP status 409 (Conflict)
+     * - Returns the specific error message in the response body
+     * - The GlobalExceptionHandler correctly handles the exception
+     */
+    @Test
+    @DisplayName("Debería devolver 409 Conflict cuando el email ya existe")
+    void registerUser_WhenEmailAlreadyExists_ShouldReturn409Conflict() throws Exception {
+        // Given: Configurar el mock del servicio para lanzar excepción por email existente
+        // Configure the service mock to throw an exception for an existing email
+        given(authService.registerUser(any(RegisterRequest.class)))
+                .willThrow(new UserAlreadyExistsException("El email ya está registrado"));
+
+        // When & Then: Ejecutar petición y verificar error 409 Conflict
+        // Execute request and check for 409 Conflict error
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest))
+                        .with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("El email ya está registrado"));
+    }
+
 }
