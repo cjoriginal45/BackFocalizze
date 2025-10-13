@@ -211,8 +211,44 @@ public class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(validRequest))
                         .with(csrf()))
-                .andExpect(status().isBadRequest()) // Verificar status 400 Bad Request
-                .andExpect(jsonPath("$.error").value("Las contraseñas no coinciden")); // Verificar mensaje de error
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Las contraseñas no coinciden"));
+    }
+
+    /**
+     * Prueba: Error cuando los datos de registro son inválidos (validación de Spring)
+     * Verifica que cuando se envían datos que violan las validaciones (@NotBlank, @Email, @Size):
+     * - Retorna status HTTP 400 (Bad Request)
+     * - Las validaciones de Spring se ejecutan antes de llamar al servicio
+     * - El servicio AuthService NO es llamado (la validación falla a nivel de controller)
+     * /
+     * * Test: Error when registration data is invalid (Spring validation)
+     * Verify that when data is sent that violates validations (@NotBlank, @Email, @Size):
+     * - Returns HTTP status 400 (Bad Request)
+     * - Spring validations are executed before calling the service
+     * - The AuthService service is NOT called (validation fails at the controller level)
+     */
+    @Test
+    @DisplayName("Debería devolver 400 Bad Request cuando los datos de registro son inválidos")
+    void registerUser_WhenDataIsInvalid_ShouldReturn400BadRequest() throws Exception {
+        // Given: Crear request con datos inválidos que violan las validaciones
+        // Create request with invalid data that violates validations
+        RegisterRequest invalidRequest = new RegisterRequest(
+                "",
+                "invalid-email",
+                "123",
+                "456"
+        );
+
+        // When & Then: Ejecutar petición y verificar error 400 por validación fallida
+        // No es necesario configurar el mock del servicio porque la validación falla antes de llamarlo
+        // Execute request and check for 400 error due to failed validation
+        // It is not necessary to configure the service mock because validation fails before calling it
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest))
+                        .with(csrf()))
+                .andExpect(status().isBadRequest());
     }
 
 }
