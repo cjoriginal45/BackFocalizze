@@ -135,5 +135,30 @@ public class AuthServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /**
+     * Prueba: Error cuando el email ya existe
+     * Verifica que se lanza la excepción correcta cuando el email está registrado
+     * /
+     * Test: Error when email already exists
+     * Verify that the correct exception is thrown when the email is registered
+     */
+    @Test
+    void registerUser_WhenEmailAlreadyExists_ShouldThrowException() {
+        // Arrange: Simular que el username está disponible pero el email ya existe
+        // Simulate that the username is available but the email already exists
+        when(userRepository.findUserNameAvailable(registerRequest.username())).thenReturn(true);
+        when(userRepository.findByEmail(registerRequest.email())).thenReturn(Optional.of(user));
+
+        // Act & Assert: Verificar que se lanza la excepción esperada
+        // Verify that the expected exception is thrown
+        assertThrows(UserAlreadyExistsException.class, () -> authService.registerUser(registerRequest));
+
+        // Verify: Verificar que se verificaron ambos campos pero no se guardó
+        // Verify that both fields were checked but not saved
+        verify(userRepository, times(1)).findUserNameAvailable(registerRequest.username());
+        verify(userRepository, times(1)).findByEmail(registerRequest.email());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
 
 }
