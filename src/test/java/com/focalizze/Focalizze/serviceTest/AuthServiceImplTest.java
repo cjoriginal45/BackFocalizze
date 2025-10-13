@@ -160,5 +160,34 @@ public class AuthServiceImplTest {
         verify(userRepository, never()).save(any(User.class));
     }
 
+    /**
+     * Prueba: Error cuando las contraseñas no coinciden
+     * Verifica que se lanza excepción cuando password y confirmPassword son diferentes
+     * /
+     * Test: Error when passwords do not match
+     * Verify that an exception is thrown when password and confirmPassword are different
+     */
+    @Test
+    void registerUser_WhenPasswordsDoNotMatch_ShouldThrowException() {
+        // Arrange: Crear request con contraseñas que no coinciden
+        // Create request with passwords that do not match
+        RegisterRequest invalidRequest = new RegisterRequest(
+                "testuser",
+                "test@example.com",
+                "password123",
+                "differentPassword"
+        );
+
+        // Act & Assert: Verificar que se lanza la excepción por contraseñas diferentes
+        // Verify that the exception is thrown for different passwords
+        assertThrows(IllegalArgumentException.class, () -> authService.registerUser(invalidRequest));
+
+        // Verify: Verificar que no se interactuó con la base de datos
+        // Verify that the database was not interacted with
+        verify(userRepository, never()).findUserNameAvailable(anyString());
+        verify(userRepository, never()).findByEmail(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
 
 }
