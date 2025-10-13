@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.serviceTest;
 import com.focalizze.Focalizze.dto.RegisterRequest;
 import com.focalizze.Focalizze.dto.RegisterResponse;
 import com.focalizze.Focalizze.dto.mappers.RegisterMapper;
+import com.focalizze.Focalizze.exceptions.UserAlreadyExistsException;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.models.UserRole;
 import com.focalizze.Focalizze.repository.UserRepository;
@@ -109,5 +110,30 @@ public class AuthServiceImplTest {
         verify(userRepository, times(1)).save(any(User.class));
         verify(registerMapper, times(1)).toRegisterResponse(any(User.class));
     }
+
+    /**
+     * Prueba: Error cuando el nombre de usuario ya existe
+     * Verifica que se lanza la excepción correcta cuando el username está en uso
+     * /
+     * Test: Error when username already exists
+     * Verify that the correct exception is thrown when the username is in use
+     */
+    @Test
+    void registerUser_WhenUsernameAlreadyExists_ShouldThrowException() {
+        // Arrange: Simular que el username ya existe
+        // Pretend that the username already exists
+        when(userRepository.findUserNameAvailable(registerRequest.username())).thenReturn(false);
+
+        // Act & Assert: Verificar que se lanza la excepción esperada
+        // Verify that the expected exception is thrown
+        assertThrows(UserAlreadyExistsException.class, () -> authService.registerUser(registerRequest));
+
+        // Verify: Verificar que no se llamó a guardar el usuario
+        // Verify that the user was not called to save
+        verify(userRepository, times(1)).findUserNameAvailable(registerRequest.username());
+        verify(userRepository, never()).findByEmail(anyString());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
 
 }
