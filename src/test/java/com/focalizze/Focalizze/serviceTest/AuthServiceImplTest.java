@@ -1,12 +1,14 @@
 package com.focalizze.Focalizze.serviceTest;
 
 import com.focalizze.Focalizze.dto.RegisterRequest;
+import com.focalizze.Focalizze.dto.RegisterResponse;
 import com.focalizze.Focalizze.dto.mappers.RegisterMapper;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.models.UserRole;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.servicesImpl.AuthServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -14,6 +16,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 
 @ExtendWith(MockitoExtension.class)
 public class AuthServiceImplTest {
@@ -59,4 +66,48 @@ public class AuthServiceImplTest {
                 .avatarUrl("")
                 .build();
     }
+
+    /**
+     * Prueba: Registro exitoso cuando el usuario no existe
+     * Verifica que cuando todos los datos son válidos y el usuario no existe,
+     * el servicio crea el usuario correctamente y retorna la respuesta esperada
+     * /
+     * Test: Successful registration when the user does not exist
+     * Verify that when all data is valid and the user does not exist,
+     * the service creates the user correctly and returns the expected response
+     */
+    @Test
+    void registerUser_WhenUserDoesNotExist_ShouldReturnRegisterResponse() {
+        // Arrange: Configurar mocks para simular un registro exitoso
+        // Set up mocks to simulate a successful registration
+        when(userRepository.findUserNameAvailable(registerRequest.username())).thenReturn(true);
+        when(userRepository.findByEmail(registerRequest.email())).thenReturn(Optional.empty());
+        when(passwordEncoder.encode(registerRequest.password())).thenReturn("encodedPassword");
+        when(userRepository.save(any(User.class))).thenReturn(user);
+        when(registerMapper.toRegisterResponse(any(User.class))).thenReturn(
+                new RegisterResponse(1L, "testuser", "testuser", "test@example.com", "User registered successfully")
+        );
+
+        // Act: Ejecutar el método a testear
+        // Execute the method to be tested
+        RegisterResponse response = authService.registerUser(registerRequest);
+
+        // Assert: Verificar que la respuesta es la esperada
+        // Verify that the response is as expected
+        assertNotNull(response);
+        assertEquals(1L, response.userId());
+        assertEquals("testuser", response.username());
+        assertEquals("testuser", response.displayName());
+        assertEquals("test@example.com", response.email());
+        assertEquals("User registered successfully", response.message());
+
+        // Verify: Verificar que se llamaron los métodos necesarios
+        // Verify that the necessary methods were called
+        verify(userRepository, times(1)).findUserNameAvailable(registerRequest.username());
+        verify(userRepository, times(1)).findByEmail(registerRequest.email());
+        verify(passwordEncoder, times(1)).encode(registerRequest.password());
+        verify(userRepository, times(1)).save(any(User.class));
+        verify(registerMapper, times(1)).toRegisterResponse(any(User.class));
+    }
+
 }
