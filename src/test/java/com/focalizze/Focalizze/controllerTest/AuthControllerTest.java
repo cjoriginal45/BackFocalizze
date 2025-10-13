@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.controllerTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.focalizze.Focalizze.dto.RegisterRequest;
 import com.focalizze.Focalizze.dto.RegisterResponse;
+import com.focalizze.Focalizze.exceptions.UserAlreadyExistsException;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.AuthService;
 import org.junit.jupiter.api.BeforeEach;
@@ -119,6 +120,37 @@ public class AuthControllerTest {
                 .andExpect(jsonPath("$.displayName").value("testuser"))
                 .andExpect(jsonPath("$.email").value("test@example.com"))
                 .andExpect(jsonPath("$.message").value("User registered successfully"));
+    }
+
+    /**
+     * Prueba: Error cuando el nombre de usuario ya existe
+     * Verifica que cuando el servicio lanza UserAlreadyExistsException por username duplicado:
+     * - Retorna status HTTP 409 (Conflict)
+     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
+     * - El GlobalExceptionHandler maneja correctamente la excepción
+     * /
+     * Test: Error when username already exists
+     * Verify that when the service throws a UserAlreadyExistsException for a duplicate username:
+     * - Return HTTP status 409 (Conflict)
+     * - Return the specific error message in the response body
+     * - The GlobalExceptionHandler correctly handles the exception
+     */
+    @Test
+    @DisplayName("Debería devolver 409 Conflict cuando el nombre de usuario ya existe")
+    void registerUser_WhenUsernameAlreadyExists_ShouldReturn409Conflict() throws Exception {
+        // Given: Configurar el mock del servicio para lanzar excepción por username existente
+        // Configure the service mock to throw an exception for an existing username
+        given(authService.registerUser(any(RegisterRequest.class)))
+                .willThrow(new UserAlreadyExistsException("El nombre de usuario ya está en uso"));
+
+        // When & Then: Ejecutar petición y verificar error 409 Conflict
+        // Execute request and check for 409 Conflict error
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(validRequest))
+                        .with(csrf()))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error").value("El nombre de usuario ya está en uso"));
     }
 
 }
