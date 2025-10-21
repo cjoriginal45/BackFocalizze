@@ -21,6 +21,7 @@ public class Post {
     private Long id;
 
     @Column(nullable = false)
+    @Lob
     private String content;
 
     private Integer position;
@@ -32,4 +33,10 @@ public class Post {
     @ManyToOne
     @JoinColumn(name = "thread_id", nullable = false)
     private ThreadClass thread;
+
+    public Post(String content, Integer position, ThreadClass thread) {
+        this.content = content;
+        this.position = position;
+        this.thread = thread;
+    }
 }
