@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.dto.LoginRequestDto;
 import com.focalizze.Focalizze.dto.LoginResponseDto;
 import com.focalizze.Focalizze.dto.mappers.LoginMapper;
 import com.focalizze.Focalizze.models.User;
+import jakarta.validation.Valid;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import com.focalizze.Focalizze.utils.JwtUtil;
 import org.springframework.http.HttpStatus;
@@ -37,7 +38,7 @@ public class LoginController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto loginRequest) {
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto loginRequest) {
 
         // AUTHENTICATION WITH SPRING SECURITY
         System.out.println("contrasenia: "+loginRequest.password());

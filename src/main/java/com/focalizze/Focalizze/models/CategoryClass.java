@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -21,6 +22,7 @@ public class CategoryClass {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(unique = true, nullable = false)
     private String name;
 
     private String description;
@@ -34,5 +36,10 @@ public class CategoryClass {
 
     public CategoryClass(){
         this.threads = new ArrayList<>();
+        this.users = new HashSet<>();
+    }
+
+    public CategoryClass(String name) {
+        this.name = name;
     }
 }
