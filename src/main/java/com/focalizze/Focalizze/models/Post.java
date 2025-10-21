@@ -24,19 +24,15 @@ public class Post {
     @Lob
     private String content;
 
+    @Column(nullable = false)
     private Integer position;
 
     private Integer characterLimit;
 
     private LocalDateTime createdAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thread_id", nullable = false)
     private ThreadClass thread;
 
-    public Post(String content, Integer position, ThreadClass thread) {
-        this.content = content;
-        this.position = position;
-        this.thread = thread;
-    }
 }

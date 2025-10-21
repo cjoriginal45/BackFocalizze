@@ -12,11 +12,13 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.ThreadService;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Service
 public class ThreadServiceImpl implements ThreadService {
 
     private final ThreadRepository threadRepository;
@@ -65,9 +67,23 @@ public class ThreadServiceImpl implements ThreadService {
 
         // 4. Construir las entidades de los posts y asociarlas al hilo
         // 4. Build the post entities and associate them with the thread
-        Post post1 = new Post(requestDto.post1(), 1, newThread);
-        Post post2 = new Post(requestDto.post2(), 2, newThread);
-        Post post3 = new Post(requestDto.post3(), 3, newThread);
+        Post post1 = Post.builder()
+                .content(requestDto.post1())
+                .position(1)
+                .thread(newThread)
+                .build();
+
+        Post post2 = Post.builder()
+                .content(requestDto.post2())
+                .position(2)
+                .thread(newThread)
+                .build();
+
+        Post post3 = Post.builder()
+                .content(requestDto.post3())
+                .position(3)
+                .thread(newThread)
+                .build();
 
         // La relación es bidireccional, así que añadimos los posts a la lista del hilo
         // The relationship is bidirectional, so we add the posts to the thread list

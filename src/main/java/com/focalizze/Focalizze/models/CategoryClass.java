@@ -38,4 +38,8 @@ public class CategoryClass {
         this.threads = new ArrayList<>();
         this.users = new HashSet<>();
     }
+
+    public CategoryClass(String name) {
+        this.name = name;
+    }
 }
