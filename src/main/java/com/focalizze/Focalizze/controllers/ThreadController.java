@@ -25,4 +25,5 @@ public class ThreadController {
         ThreadResponseDto responseDto = threadService.createThread(requestDto);
         return new ResponseEntity<>(responseDto, HttpStatus.CREATED);
     }
+    
 }
