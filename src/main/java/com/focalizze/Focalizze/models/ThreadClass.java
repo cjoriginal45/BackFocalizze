@@ -34,6 +34,9 @@ public class ThreadClass {
 
     private Integer commentCount;
 
+    @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
+    private Integer viewCount = 0;
+
     @ManyToOne
     @JoinColumn(name="user_id") //foreign key
     private User user;
@@ -53,6 +56,7 @@ public class ThreadClass {
 
     @OneToMany(mappedBy="thread")
     private List<CommentClass> comments;
+
 
     @OneToMany(mappedBy="thread")
     private List<NotificationClass> notifications;
