@@ -22,6 +22,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT COUNT(u) = 0 FROM User u WHERE u.username = :username")
     boolean findUserNameAvailable(@Param("username") String username);
 
-
+    @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT(:prefix, '%'))")
     List<User> findTop5ByUsernameStartingWithIgnoreCase(String prefix);
 }

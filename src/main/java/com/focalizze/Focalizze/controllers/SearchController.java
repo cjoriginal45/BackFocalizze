@@ -22,6 +22,8 @@ public class SearchController {
     // Endpoint para la búsqueda predictiva de usuarios
     @GetMapping("/users")
     public ResponseEntity<List<UserSearchDto>> searchUsers(@RequestParam("q") String query) {
+        System.out.println("se esta ejecutando");
+        System.out.println("query: "+query);
         List<UserSearchDto> results = searchService.searchUsersByPrefix(query);
         return ResponseEntity.ok(results);
     }
