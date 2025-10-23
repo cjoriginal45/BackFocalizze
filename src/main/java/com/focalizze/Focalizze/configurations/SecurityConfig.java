@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.utils.JwtRequestFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -18,6 +19,7 @@ import java.util.List;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 public class SecurityConfig {
 
     private final JwtRequestFilter jwtRequestFilter;
@@ -34,13 +36,20 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // REGLA 1: Rutas públicas para autenticación (login, registro)
                         .requestMatchers("/api/auth/**").permitAll()
+
+                        // --- AÑADE ESTA LÍNEA AQUÍ ---
+                        // REGLA 2: Rutas que requieren autenticación para interactuar con hilos
+                        .requestMatchers("/api/thread/**").authenticated()
+                        // -----------------------------
+
+                        // REGLA 3 (Final): Cualquier otra petición no especificada también requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-                // Le decimos a la configuración de seguridad qué proveedor usar
                 .authenticationProvider(authenticationProvider);
 
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);

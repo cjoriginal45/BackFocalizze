@@ -1,9 +1,12 @@
+// src/main/java/com/focalizze/Focalizze/models/ThreadClass.java
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.ColumnDefault; // Importante!
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -20,7 +23,7 @@ public class ThreadClass {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Integer saveCount;
+    private Integer saveCount = 0;
 
     private boolean isSavedByCurrentUser;
 
@@ -30,11 +33,10 @@ public class ThreadClass {
 
     private boolean isPublished;
 
-    private Integer likeCount;
+    private Integer likeCount = 0;
 
-    private Integer commentCount;
+    private Integer commentCount = 0;
 
-    @Column(name = "view_count", nullable = false, columnDefinition = "INT DEFAULT 0")
     private Integer viewCount = 0;
 
     @ManyToOne
@@ -57,7 +59,6 @@ public class ThreadClass {
     @OneToMany(mappedBy="thread")
     private List<CommentClass> comments;
 
-
     @OneToMany(mappedBy="thread")
     private List<NotificationClass> notifications;
 
@@ -71,5 +72,10 @@ public class ThreadClass {
         this.likes = new ArrayList<>();
         this.comments = new ArrayList<>();
         this.notifications = new ArrayList<>();
+
+        this.saveCount = 0;
+        this.likeCount = 0;
+        this.commentCount = 0;
+        this.viewCount = 0;
     }
 }

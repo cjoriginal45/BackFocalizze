@@ -63,6 +63,7 @@ public class ThreadServiceImpl implements ThreadService {
                 .likeCount(0)
                 .commentCount(0)
                 .saveCount(0)
+                .viewCount(0)
                 .build();
 
         // 4. Construir las entidades de los posts y asociarlas al hilo
