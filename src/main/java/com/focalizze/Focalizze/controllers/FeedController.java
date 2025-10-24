@@ -13,9 +13,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/feed")
-@RequiredArgsConstructor
 public class FeedController {
     private final FeedService feedService;
+
+    public FeedController(FeedService feedService) {
+        this.feedService = feedService;
+    }
 
     @GetMapping
     public ResponseEntity<Page<FeedThreadDto>> getFeed(
