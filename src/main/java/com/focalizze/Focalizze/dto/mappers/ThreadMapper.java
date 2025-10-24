@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.models.ThreadClass;
 import org.springframework.stereotype.Component;
 import com.focalizze.Focalizze.models.Post;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -28,5 +29,17 @@ public class ThreadMapper {
                 postContents,
                 thread.getCreatedAt()
         );
+    }
+
+    public List<ThreadResponseDto> toDtoList(List<ThreadClass> threads) {
+        // MEJORA 1: Manejo de nulos para robustez.
+        if (threads == null) {
+            return Collections.emptyList();
+        }
+
+        // MEJORA 2: Usamos una referencia a método (this::toDto) para mayor claridad.
+        return threads.stream()
+                .map(this::mapToResponseDto)
+                .collect(Collectors.toList());
     }
 }
