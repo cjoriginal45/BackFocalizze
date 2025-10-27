@@ -1,6 +1,8 @@
 package com.focalizze.Focalizze.repository;
 
 import com.focalizze.Focalizze.models.Like;
+import com.focalizze.Focalizze.models.ThreadClass;
+import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
