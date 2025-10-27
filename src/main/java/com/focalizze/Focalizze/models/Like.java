@@ -20,13 +20,19 @@ public class Like {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @ManyToOne
-    @JoinColumn(name="user_id") //foreign key
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="user_id", nullable = false)  //foreign key
     private User user;
 
-    @ManyToOne
-    @JoinColumn(name="thread_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="thread_id", nullable = false)
     private ThreadClass thread;
 }
