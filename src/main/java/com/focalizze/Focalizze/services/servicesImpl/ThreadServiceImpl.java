@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
+import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
 import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
@@ -18,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -30,6 +32,8 @@ public class ThreadServiceImpl implements ThreadService {
     private final ThreadMapper threadMapper;
     private final FeedMapper feedMapper;
     private final SavedThreadRepository savedThreadRepository;
+
+    private static final int DAILY_THREAD_LIMIT = 3;
 
     public ThreadServiceImpl(ThreadRepository threadRepository,
                              UserRepository userRepository,
@@ -160,4 +164,26 @@ public class ThreadServiceImpl implements ThreadService {
                 dto.stats(), isLiked, isSaved
         );
     }
+
+    @Override
+    @Transactional
+    public long countByUserAndCreatedAtAfter(User user, LocalDateTime startOfDay) {
+        // 1. Obtener el usuario autenticado
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalStateException("Usuario no autenticado, no se puede crear el hilo."));
+
+        // 2. Calcular cuántos hilos ha creado el usuario hoy
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay(); // Obtiene la fecha de hoy a las 00:00:00
+        long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(currentUser, startOfToday);
+
+        // 3. Aplicar la regla de negocio
+        if (threadsCreatedToday >= DAILY_THREAD_LIMIT) {
+            throw new DailyLimitExceededException("Límite diario de hilos alcanzado.");
+        }
+
+        return threadsCreatedToday;
+    }
+
+
 }
