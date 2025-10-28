@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
+import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
 import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
@@ -119,9 +120,7 @@ public class ThreadServiceImpl implements ThreadService {
 
         // 3. Aplicar la regla de negocio
         if (threadsCreatedToday >= DAILY_THREAD_LIMIT) {
-            // Si el usuario ya ha alcanzado o superado el límite, lanzamos una excepción.
-            //            // Esta excepción debería ser capturada por un @ControllerAdvice para devolver un error 429 Too Many Requests.
-            throw new IllegalStateException("Límite diario de hilos alcanzado. No se pueden crear más hilos hoy.");
+            throw new DailyLimitExceededException("Límite diario de hilos alcanzado.");
         }
 
         return threadsCreatedToday;
