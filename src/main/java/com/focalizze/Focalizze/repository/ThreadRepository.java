@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.repository;
 
 import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.ThreadClass;
+import com.focalizze.Focalizze.models.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -9,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -30,4 +32,13 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     @Query("SELECT t FROM ThreadClass t WHERE t.category = :category")
     List<ThreadClass> findByCategory(@Param("category") CategoryClass category);
+
+    // Busca una "página" de hilos para un usuario específico, ordenados por fecha de creación descendente.
+    Page<ThreadClass> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
+
+    // Contar hilos de un usuario
+    long countByUser(User user);
+
+
+    long countByUserAndCreatedAtAfter(User currentUser, LocalDateTime startOfToday);
 }
