@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.models.User;
@@ -58,5 +59,13 @@ public class ThreadController {
         // Devolvemos una respuesta exitosa sin contenido
         // We return a successful response without content
         return ResponseEntity.ok().build();
+    }
+
+    // Método para obtener un hilo por id
+    // Method to get a thread by id
+    @GetMapping("/{threadId}")
+    public ResponseEntity<FeedThreadDto> getThreadById(@PathVariable Long threadId) {
+        FeedThreadDto threadDto = threadService.getThreadByIdAndIncrementView(threadId);
+        return ResponseEntity.ok(threadDto);
     }
 }
