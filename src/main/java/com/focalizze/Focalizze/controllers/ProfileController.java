@@ -1,20 +1,23 @@
 package com.focalizze.Focalizze.controllers;
 
 import com.focalizze.Focalizze.dto.ProfileResponseDto;
+import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
+import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/profiles")
@@ -47,5 +50,37 @@ public class ProfileController {
     public ResponseEntity<Resource> serveAvatar(@PathVariable String filename) {
         Resource file = fileStorageService.loadFileAsResource(filename);
         return ResponseEntity.ok().header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + file.getFilename() + "\"").body(file);
+    }
+
+    @PatchMapping("/{username}")
+    public ResponseEntity<ProfileResponseDto> patchProfile(@PathVariable String username, // Se lee de la URL
+                                                           @Valid @RequestBody ProfileUpdateRequestDto updateDto){
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!currentUsername.equals(username)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Forbidden
+        }
+
+        ProfileResponseDto updatedProfile = profileService.updateProfile(username,updateDto);
+        return ResponseEntity.ok(updatedProfile);
+    }
+
+    @PostMapping("/{username}/avatar")
+    public ResponseEntity<?> uploadAvatar(
+            @PathVariable String username,
+            @RequestParam("avatar") MultipartFile file // Recibe el archivo
+    ) {
+
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!currentUsername.equals(username)) {
+            return new ResponseEntity<>("No tienes permiso para cambiar el avatar de este perfil.", HttpStatus.FORBIDDEN);
+        }
+
+        try {
+            String avatarUrl = profileService.updateAvatar(username, file);
+            // Devolvemos un JSON simple con la nueva URL del avatar
+            return ResponseEntity.ok(Map.of("avatarUrl", avatarUrl));
+        } catch (Exception e) {
+            return new ResponseEntity<>("No se pudo subir el archivo: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }
