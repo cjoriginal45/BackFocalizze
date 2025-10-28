@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
@@ -30,4 +31,22 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     @Query("SELECT t FROM ThreadClass t WHERE t.category = :category")
     List<ThreadClass> findByCategory(@Param("category") CategoryClass category);
+
+    /**
+     * Busca un hilo por su ID y carga eficientemente las relaciones necesarias
+     * (autor del hilo, lista de likes y autor de cada like).
+     * @param threadId El ID del hilo a buscar.
+     * @return Un Optional que contiene el ThreadClass si se encuentra.
+     * --------------------------------------------------------------------------
+     * * Busca un hilo por su ID y carga eficientemente las relaciones necesarias
+     * * (autor del hilo, lista de me gusta y autor de cada me gusta).
+     * * @param threadId El ID del hilo a buscar.
+     * * @return Un opcional que contiene el ThreadClass si se encuentra.
+     */
+    @Query("SELECT t FROM ThreadClass t " +
+            "LEFT JOIN FETCH t.user " +
+            "LEFT JOIN FETCH t.likes l " +
+            "LEFT JOIN FETCH l.user " +
+            "WHERE t.id = :threadId")
+    Optional<ThreadClass> findThreadDetailsById(Long threadId);
 }
