@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
@@ -37,4 +38,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     // Contar hilos de un usuario
     long countByUser(User user);
+
+
+    long countByUserAndCreatedAtAfter(User currentUser, LocalDateTime startOfToday);
 }

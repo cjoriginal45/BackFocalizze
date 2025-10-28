@@ -10,7 +10,7 @@ public record ProfileResponseDto(
         Integer followers,
         Integer follow,
         Integer threadCount,
-        Integer threadsAvailableToday,
+        Long threadsAvailableToday,
         LocalDateTime registerDate
 
 ) {
