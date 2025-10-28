@@ -1,7 +1,9 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
 import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
 import com.focalizze.Focalizze.models.CategoryClass;
@@ -9,6 +11,7 @@ import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.CategoryRepository;
+import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.ThreadService;
@@ -27,17 +30,21 @@ public class ThreadServiceImpl implements ThreadService {
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final ThreadMapper threadMapper;
+    private final FeedMapper feedMapper;
+    private final SavedThreadRepository savedThreadRepository;
 
     private static final int DAILY_THREAD_LIMIT = 3;
 
     public ThreadServiceImpl(ThreadRepository threadRepository,
                              UserRepository userRepository,
                              CategoryRepository categoryRepository,
-                             ThreadMapper threadMapper) {
+                             ThreadMapper threadMapper, FeedMapper feedMapper, SavedThreadRepository savedThreadRepository) {
         this.threadRepository = threadRepository;
         this.userRepository = userRepository;
         this.categoryRepository = categoryRepository;
         this.threadMapper = threadMapper;
+        this.feedMapper = feedMapper;
+        this.savedThreadRepository = savedThreadRepository;
     }
 
 
@@ -104,6 +111,58 @@ public class ThreadServiceImpl implements ThreadService {
         // 6. Mapear la entidad guardada a un DTO de respuesta y devolverlo
         // 6. Map the saved entity to a response DTO and return it
         return threadMapper.mapToResponseDto(savedThread);
+    }
+
+    // Método para obtener detalles e incrementar vistas
+    // Method to get details and increment views
+    @Override
+    @Transactional
+    public FeedThreadDto getThreadByIdAndIncrementView(Long threadId) {
+        // 1. Buscamos el hilo con toda su información
+        // 1. We look for the thread with all its information
+        ThreadClass thread = threadRepository.findThreadDetailsById(threadId)
+                .orElseThrow(() -> new RuntimeException("Thread no encontrado con id: " + threadId));
+
+        // 2. Incrementamos el contador de vistas
+        // 2. We increase the view counter
+        thread.setViewCount(thread.getViewCount() + 1);
+
+        // 3. Guardamos el cambio (la transacción se encargará de persistirlo)
+        // 3. Save the change (the transaction will take care of persisting it)
+        ThreadClass updatedThread = threadRepository.save(thread);
+
+        // 4. Mapeamos y enriquecemos el DTO para la respuesta
+        // 4. We map and enrich the DTO for the response
+        return enrichDtoWithUserData(updatedThread);
+    }
+
+    // Método privado refactorizado para evitar duplicar código
+    // Private method refactored to avoid duplicate code
+    private FeedThreadDto enrichDtoWithUserData(ThreadClass thread) {
+        // Obtenemos el usuario actual (o null si es un invitado)
+        // Get the current user (or null if it's a guest)
+        User currentUser = null;
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
+            currentUser = (User) authentication.getPrincipal();
+        }
+
+        FeedThreadDto dto = feedMapper.toFeedThreadDto(thread);
+
+        boolean isLiked = false;
+        boolean isSaved = false;
+
+        if (currentUser != null) {
+            final Long currentUserId = currentUser.getId();
+            isLiked = thread.getLikes().stream()
+                    .anyMatch(like -> like.getUser().getId().equals(currentUserId));
+            isSaved = savedThreadRepository.existsByUserAndThread(currentUser, thread);
+        }
+
+        return new FeedThreadDto(
+                dto.id(), dto.user(), dto.publicationDate(), dto.posts(),
+                dto.stats(), isLiked, isSaved
+        );
     }
 
     @Override

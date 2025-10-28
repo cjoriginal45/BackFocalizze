@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.configurations;
 import com.focalizze.Focalizze.utils.JwtRequestFilter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -39,10 +40,9 @@ public class SecurityConfig {
                         // REGLA 1: Rutas públicas para autenticación (login, registro)
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // --- AÑADE ESTA LÍNEA AQUÍ ---
                         // REGLA 2: Rutas que requieren autenticación para interactuar con hilos
+                        .requestMatchers(HttpMethod.GET, "/api/thread/**").permitAll() // Permite GET a /api/thread/{id} / Allow GET to /api/thread/{id}
                         .requestMatchers("/api/thread/**").authenticated()
-                        // -----------------------------
 
                         // REGLA 3 (Final): Cualquier otra petición no especificada también requiere autenticación
                         .anyRequest().authenticated()
