@@ -6,6 +6,6 @@ public record CommentResponseDto(
         Long id,
         String content,
         LocalDateTime createdAt,
-        ThreadResponseDto.UserDto author
+        UserDto author
 ) {
 }

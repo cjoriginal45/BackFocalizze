@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.dto.mappers;
 
 import com.focalizze.Focalizze.dto.CommentResponseDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.CommentClass;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.stereotype.Component;
@@ -24,7 +25,7 @@ public class CommentMapper {
 
         // Mapeamos la información del autor del comentario usando un método de ayuda.
         // We map the comment author information using a helper method.
-        ThreadResponseDto.UserDto authorDto = mapUserToUserDto(comment.getUser());
+        UserDto authorDto = mapUserToUserDto(comment.getUser());
 
         // Creamos y devolvemos el DTO de respuesta del comentario.
         // We create and return the comment response DTO.
@@ -47,7 +48,7 @@ public class CommentMapper {
      * * @param user The user entity.
      * * @return A DTO with the user's public data.
      */
-    private ThreadResponseDto.UserDto mapUserToUserDto(User user) {
+    private UserDto mapUserToUserDto(User user) {
         if (user == null) {
             // Devuelve nulo o un DTO por defecto si el autor no existe,
             // aunque en un sistema bien diseñado, esto no debería ocurrir.
@@ -55,10 +56,11 @@ public class CommentMapper {
             // although in a well-designed system, this should not happen.
             return null;
         }
-        return new ThreadResponseDto.UserDto(
+        return new UserDto(
                 user.getId(),
                 user.getUsername(),
-                user.getDisplayName()
+                user.getDisplayName(),
+                user.getAvatarUrl()
         );
     }
 }

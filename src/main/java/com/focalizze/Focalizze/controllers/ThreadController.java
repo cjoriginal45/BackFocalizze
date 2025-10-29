@@ -1,9 +1,11 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.LikeService;
+import com.focalizze.Focalizze.services.SaveService;
 import com.focalizze.Focalizze.services.ThreadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +22,7 @@ public class ThreadController {
 
     private final ThreadService threadService;
     private final LikeService likeService;
+    private final SaveService saveService;
 
     @PostMapping("/create")
     @PreAuthorize("isAuthenticated()")
@@ -57,6 +60,24 @@ public class ThreadController {
 
         // Devolvemos una respuesta exitosa sin contenido
         // We return a successful response without content
+        return ResponseEntity.ok().build();
+    }
+
+    // Método para obtener un hilo por id
+    // Method to get a thread by id
+    @GetMapping("/{threadId}")
+    public ResponseEntity<FeedThreadDto> getThreadById(@PathVariable Long threadId) {
+        FeedThreadDto threadDto = threadService.getThreadByIdAndIncrementView(threadId);
+        return ResponseEntity.ok(threadDto);
+    }
+
+    // Método para guardar hilos
+    // Method to save threads
+    @PostMapping("/{threadId}/save")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> toggleSave(@PathVariable Long threadId) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        saveService.toggleSave(threadId, currentUser);
         return ResponseEntity.ok().build();
     }
 }
