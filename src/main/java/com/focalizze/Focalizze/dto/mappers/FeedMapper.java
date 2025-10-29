@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.dto.mappers;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.StatsDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
 
@@ -16,10 +17,11 @@ import java.util.stream.Collectors;
 public class FeedMapper {
 
     public FeedThreadDto toFeedThreadDto(ThreadClass thread) {
-        ThreadResponseDto.UserDto authorDto = new ThreadResponseDto.UserDto(
+        UserDto authorDto = new UserDto(
                 thread.getUser().getId(),
                 thread.getUser().getUsername(),
-                thread.getUser().getDisplayName()
+                thread.getUser().getDisplayName(),
+                thread.getUser().getAvatarUrl()
         );
 
         List<String> postContents = thread.getPosts().stream()

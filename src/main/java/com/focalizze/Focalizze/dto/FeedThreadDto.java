@@ -5,7 +5,7 @@ import java.util.List;
 
 public record FeedThreadDto(
         Long id,
-        ThreadResponseDto.UserDto user,
+        UserDto user,
         LocalDateTime publicationDate,
         List<String> posts,
         StatsDto stats,

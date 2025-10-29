@@ -5,4 +5,6 @@ public record StatsDto(
         Integer comments,
         Integer saves,
         Integer views
-) {}
+) {
+
+}

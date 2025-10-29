@@ -8,14 +8,8 @@ public record ThreadResponseDto(
         UserDto author,
         String categoryName,
         List<String> posts,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        StatsDto stats
 ) {
-    // Sub-record para anidar la información del autor de forma segura
-    // Sub-record to safely nest author information
-    public record UserDto(
-            Long id,
-            String username,
-            String displayName
-    ) {
-    }
+
 }
