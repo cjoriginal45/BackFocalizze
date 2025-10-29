@@ -10,4 +10,5 @@ public interface SaveService {
      * @param currentUser El usuario que realiza la acción.
      */
     void toggleSave(Long threadId, User currentUser);
+
 }
