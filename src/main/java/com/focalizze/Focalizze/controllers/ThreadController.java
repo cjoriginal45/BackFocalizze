@@ -42,7 +42,7 @@ public class ThreadController {
      * Endpoint para dar o quitar un "like" a un hilo.
      * @param threadId El ID del hilo, extraído de la URL.
      * @return Una respuesta 200 OK si la operación es exitosa.
-     *
+     * /
      * Endpoint for liking or unliking a thread.
      * * @param threadId The thread ID, extracted from the URL.
      * * @return A 200 OK response if the operation is successful.
