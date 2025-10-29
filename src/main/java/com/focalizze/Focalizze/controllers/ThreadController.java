@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.LikeService;
+import com.focalizze.Focalizze.services.SaveService;
 import com.focalizze.Focalizze.services.ThreadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class ThreadController {
 
     private final ThreadService threadService;
     private final LikeService likeService;
+    private final SaveService saveService;
 
     @PostMapping("/create")
     @PreAuthorize("isAuthenticated()")
@@ -40,7 +42,7 @@ public class ThreadController {
      * Endpoint para dar o quitar un "like" a un hilo.
      * @param threadId El ID del hilo, extraído de la URL.
      * @return Una respuesta 200 OK si la operación es exitosa.
-     *
+     * /
      * Endpoint for liking or unliking a thread.
      * * @param threadId The thread ID, extracted from the URL.
      * * @return A 200 OK response if the operation is successful.
@@ -67,5 +69,15 @@ public class ThreadController {
     public ResponseEntity<FeedThreadDto> getThreadById(@PathVariable Long threadId) {
         FeedThreadDto threadDto = threadService.getThreadByIdAndIncrementView(threadId);
         return ResponseEntity.ok(threadDto);
+    }
+
+    // Método para guardar hilos
+    // Method to save threads
+    @PostMapping("/{threadId}/save")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> toggleSave(@PathVariable Long threadId) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        saveService.toggleSave(threadId, currentUser);
+        return ResponseEntity.ok().build();
     }
 }
