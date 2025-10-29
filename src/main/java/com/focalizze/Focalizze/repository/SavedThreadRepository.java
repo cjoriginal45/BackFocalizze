@@ -6,16 +6,22 @@ import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 // El repositorio gestiona la entidad 'SavedThreads'
 // The repository manages the 'SavedThreads' entity
 public interface SavedThreadRepository extends JpaRepository<SavedThreads, Long> {
 
+    // Para la lógica de "toggle" (añadir/quitar)
+    // For "toggle" logic (add/remove)
+    Optional<SavedThreads> findByUserAndThread(User user, ThreadClass thread);
+
     /**
      * Comprueba de forma eficiente si existe una entrada para un usuario y un hilo específicos.
      * Spring Data JPA construye la consulta basándose en el nombre del método, buscando
      * los campos 'user' y 'thread' dentro de la entidad 'SavedThreads'.
-     *
+     * /
      * Efficiently checks if an entry exists for a specific user and thread.
      * Spring Data JPA constructs the query based on the method name, searching
      * for the 'user' and 'thread' fields within the 'SavedThreads' entity.
