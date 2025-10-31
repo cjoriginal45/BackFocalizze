@@ -40,9 +40,10 @@ public class LikeServiceImpl implements LikeService {
             // Si el like ya existe, lo eliminamos (quitar like).
             // If the like already exists, we delete it (remove like).
             likeRepository.delete(existingLike.get());
+            thread.setLikeCount(thread.getLikeCount() - 1);
             // Actualizamos el contador de likes en la entidad del hilo.
             // We update the like counter in the thread entity.
-            thread.setLikeCount(thread.getLikeCount() - 1);
+            interactionLimitService.refundInteraction(currentUser, InteractionType.LIKE);
         } else {
             // Si el like no existe, lo creamos (dar like).
             // If the like does not exist, we create it (give like).

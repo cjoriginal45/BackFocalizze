@@ -11,5 +11,7 @@ public interface InteractionLimitService {
 
     public int getRemainingInteractions(User user);
 
+    public void refundInteraction(User user, InteractionType type);
+
 
 }

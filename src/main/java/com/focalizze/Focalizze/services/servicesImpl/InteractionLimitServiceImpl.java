@@ -7,9 +7,11 @@ import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.InteractionLogRepository;
 import com.focalizze.Focalizze.services.InteractionLimitService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 @Service
 public class InteractionLimitServiceImpl implements InteractionLimitService {
@@ -63,5 +65,23 @@ public class InteractionLimitServiceImpl implements InteractionLimitService {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         long interactionsToday = interactionLogRepository.countByUserAndCreatedAtAfter(user, startOfToday);
         return (int) Math.max(0, DAILY_INTERACTION_LIMIT - interactionsToday);
+    }
+
+    /**
+     * Intenta eliminar un log de interacción para 'reembolsar' el cupo al usuario.
+     * @param user El usuario que deshace la acción.
+     * @param type El tipo de interacción a reembolsar.
+     */
+    @Transactional
+    @Override
+    public void refundInteraction(User user, InteractionType type) {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+
+        // Buscamos la interacción más reciente del tipo especificado que ocurrió hoy.
+        Optional<InteractionLog> logToRefund = interactionLogRepository
+                .findFirstByUserAndTypeAndCreatedAtAfterOrderByCreatedAtDesc(user, type, startOfToday);
+
+        // Si encontramos un log para reembolsar, lo eliminamos.
+        logToRefund.ifPresent(interactionLogRepository::delete);
     }
 }
