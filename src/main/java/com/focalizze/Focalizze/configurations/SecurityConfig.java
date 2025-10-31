@@ -40,6 +40,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/thread/**").authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/profiles/avatars/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/profile/**").permitAll()
 
                         // REGLA 2: Rutas que requieren autenticación para interactuar con hilos
                         .requestMatchers(HttpMethod.GET, "/api/thread/**").permitAll() // Permite GET a /api/thread/{id} / Allow GET to /api/thread/{id}

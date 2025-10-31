@@ -31,7 +31,6 @@ public class ProfileServiceImpl implements ProfileService {
     private final ThreadRepository threadRepository;
     private final FollowRepository followRepository;
     private final ThreadMapper threadMapper;
-    private final ThreadService threadService;
     private final FileStorageService fileStorageService;
 
     private static final int DAILY_THREAD_LIMIT = 3;
@@ -40,13 +39,11 @@ public class ProfileServiceImpl implements ProfileService {
                               ThreadRepository threadRepository,
                               FollowRepository followRepository,
                               ThreadMapper threadMapper,
-                              ThreadService threadService,
                               FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.threadRepository = threadRepository;
         this.followRepository = followRepository;
         this.threadMapper = threadMapper;
-        this.threadService = threadService;
         this.fileStorageService = fileStorageService;
     }
 
@@ -71,7 +68,7 @@ public class ProfileServiceImpl implements ProfileService {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         if (username.equals(currentUsername)) {
             LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-            long threadsCreatedToday = threadService.countByUserAndCreatedAtAfter(user,startOfToday);
+            long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(user, startOfToday);
             threadsAvailableToday = (Long) Math.max(0, DAILY_THREAD_LIMIT - threadsCreatedToday);
         }
 
@@ -96,7 +93,7 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        Page<ThreadClass> threadPage = threadRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+        Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(user, pageable);
 
         // Mapear la página de entidades a una lista de DTOs
         return threadMapper.toDtoList(threadPage.getContent());
