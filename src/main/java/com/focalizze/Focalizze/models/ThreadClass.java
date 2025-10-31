@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.ColumnDefault; // Importante!
 
 import java.time.LocalDateTime;
@@ -43,11 +44,13 @@ public class ThreadClass {
     @JoinColumn(name="user_id") //foreign key
     private User user;
 
+
     @OneToMany(
             mappedBy = "thread",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @BatchSize(size = 10)
     private List<Post> posts;
 
     @OneToMany(mappedBy="thread")

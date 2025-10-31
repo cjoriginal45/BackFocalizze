@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 @Service
 public class ThreadServiceImpl implements ThreadService {
@@ -120,8 +121,8 @@ public class ThreadServiceImpl implements ThreadService {
     public FeedThreadDto getThreadByIdAndIncrementView(Long threadId) {
         // 1. Buscamos el hilo con toda su información
         // 1. We look for the thread with all its information
-        ThreadClass thread = threadRepository.findThreadDetailsById(threadId)
-                .orElseThrow(() -> new RuntimeException("Thread no encontrado con id: " + threadId));
+        ThreadClass thread = threadRepository.findByIdWithDetails(threadId)
+                .orElseThrow(() -> new NoSuchElementException("No se encontró un hilo con el ID: " + threadId));
 
         // 2. Incrementamos el contador de vistas
         // 2. We increase the view counter
