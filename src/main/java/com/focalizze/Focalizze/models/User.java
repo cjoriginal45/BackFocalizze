@@ -72,6 +72,9 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "userReported")
     private List<Report> reportsReceived;
 
+    @OneToMany(mappedBy = "user")
+    private List<InteractionLog> interactions;
+
     @ManyToMany
     @JoinTable(
             name = "categories_users",
@@ -97,6 +100,7 @@ public class User implements UserDetails {
         this.notifications = new ArrayList<>();
         this.reportsMade = new ArrayList<>();
         this.reportsReceived = new ArrayList<>();
+        this.interactions = new ArrayList<>();
     }
 
 

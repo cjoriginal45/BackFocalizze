@@ -4,11 +4,13 @@ import com.focalizze.Focalizze.dto.CommentRequestDto;
 import com.focalizze.Focalizze.dto.CommentResponseDto;
 import com.focalizze.Focalizze.dto.mappers.CommentMapper;
 import com.focalizze.Focalizze.models.CommentClass;
+import com.focalizze.Focalizze.models.InteractionType;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.CommentRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.services.CommentService;
+import com.focalizze.Focalizze.services.InteractionLimitService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -21,6 +23,7 @@ public class CommentServiceImpl  implements CommentService {
     private final ThreadRepository threadRepository;
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
+    private final InteractionLimitService interactionLimitService;
 
     @Override
     @Transactional(readOnly = true)
@@ -38,6 +41,9 @@ public class CommentServiceImpl  implements CommentService {
         ThreadClass thread = threadRepository.findById(threadId)
                 .orElseThrow(() -> new RuntimeException("Thread no encontrado"));
 
+        // Verificar si el usuario puede comentar.
+        interactionLimitService.checkInteractionLimit(currentUser);
+
         CommentClass newComment = CommentClass.builder()
                 .content(commentRequestDto.content())
                 .user(currentUser)
@@ -47,6 +53,10 @@ public class CommentServiceImpl  implements CommentService {
         CommentClass savedComment = commentRepository.save(newComment);
 
         thread.setCommentCount(thread.getCommentCount() + 1);
+
+        // Registramos la interacción DESPUÉS de guardar el comentario.
+        interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
+
         threadRepository.save(thread);
 
         return commentMapper.toCommentResponseDto(savedComment);
