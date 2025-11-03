@@ -14,6 +14,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
@@ -33,35 +37,30 @@ public class FeedServiceImpl implements FeedService {
         // We get the threads page from the database.
         Page<ThreadClass> threadPage = threadRepository.findThreadsForFeed(pageable);
 
+        List<ThreadClass> threadsOnPage = threadPage.getContent();
+
+        if (threadsOnPage.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // Obtenemos los IDs de los hilos de la página actual.
+        List<Long> threadIds = threadsOnPage.stream().map(ThreadClass::getId).collect(Collectors.toList());
+
+        //    Hacemos una consulta a la BD para saber cuáles de estos hilos ha guardado el usuario.
+        Set<Long> savedThreadIds = savedThreadRepository.findSavedThreadIdsByUserInThreadIds(currentUser, threadIds);
+
         // Mapeamos cada hilo de la página a su DTO correspondiente.
         // We map each thread on the page to its corresponding DTO.
         return threadPage.map(thread -> {
-            // Usamos el mapper para hacer la conversión base (stats, posts, etc.).
-            // We use the mapper to do the base conversion (stats, posts, etc.).
-            FeedThreadDto dto = feedMapper.toFeedThreadDto(thread);
 
-            // Calculamos dinámicamente si al usuario actual le gusta este hilo.
-            //  Esto funciona porque la consulta del repositorio ya cargó la lista de 'likes'.
-            // We dynamically calculate whether the current user likes this thread.
-            // This works because the repository query already loaded the list of likes.
-            boolean isLiked = thread.getLikes().stream()
+            boolean isLikedByCurrentUser = thread.getLikes().stream()
                     .anyMatch(like -> like.getUser().getId().equals(currentUser.getId()));
 
-            // Calculamos dinámicamente si el usuario actual ha guardado este hilo.
-            // We dynamically calculate if the current user has saved this thread.
-            boolean isSaved = savedThreadRepository.existsByUserAndThread(currentUser, thread);
+            boolean isSavedByCurrentUser = savedThreadIds.contains(thread.getId());
 
-            // Devolvemos una nueva instancia del DTO con los booleanos correctos.
-            // We return a new instance of the DTO with the correct booleans.
-            return new FeedThreadDto(
-                    dto.id(),
-                    dto.user(),
-                    dto.publicationDate(),
-                    dto.posts(),
-                    dto.stats(),
-                    isLiked,
-                    isSaved
-            );
+            FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
+
+            return baseDto.withInteractionStatus(isLikedByCurrentUser, isSavedByCurrentUser);
         });
     }
 }
