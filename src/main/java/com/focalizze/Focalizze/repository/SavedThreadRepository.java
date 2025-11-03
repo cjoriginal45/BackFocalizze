@@ -4,9 +4,13 @@ import com.focalizze.Focalizze.models.SavedThreads;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 // El repositorio gestiona la entidad 'SavedThreads'
@@ -31,4 +35,8 @@ public interface SavedThreadRepository extends JpaRepository<SavedThreads, Long>
      * @return true si existe una entrada, false en caso contrario / true if an entry exists, false otherwise
      */
     boolean existsByUserAndThread(User user, ThreadClass thread);
+
+
+    @Query("SELECT s.thread.id FROM SavedThreads s WHERE s.user = :user AND s.thread.id IN :threadIds")
+    Set<Long> findSavedThreadIdsByUserInThreadIds(@Param("user") User user, @Param("threadIds") List<Long> threadIds);
 }

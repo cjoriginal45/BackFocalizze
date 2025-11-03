@@ -22,7 +22,11 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      Gets a page of threads for the feed, fetching author information
      in the same query to avoid the N+1 problem.
      */
-    @Query(value = "SELECT t FROM ThreadClass t JOIN FETCH t.user",
+    @Query(value = "SELECT DISTINCT t FROM ThreadClass t " +
+            "LEFT JOIN FETCH t.user u " +
+            "LEFT JOIN FETCH t.category c " +
+            "LEFT JOIN FETCH t.likes l " +
+            "LEFT JOIN FETCH l.user lu",
             countQuery = "SELECT count(t) FROM ThreadClass t")
     Page<ThreadClass> findThreadsForFeed(Pageable pageable);
 
@@ -43,17 +47,6 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     long countByUserAndCreatedAtAfter(User currentUser, LocalDateTime startOfToday);
 
-    /**
-     * Busca un hilo por su ID y carga eficientemente las relaciones necesarias
-     * (autor del hilo, lista de likes y autor de cada like).
-     * @param threadId El ID del hilo a buscar.
-     * @return Un Optional que contiene el ThreadClass si se encuentra.
-     * --------------------------------------------------------------------------
-     * * Busca un hilo por su ID y carga eficientemente las relaciones necesarias
-     * * (autor del hilo, lista de me gusta y autor de cada me gusta).
-     * * @param threadId El ID del hilo a buscar.
-     * * @return Un opcional que contiene el ThreadClass si se encuentra.
-     */
     @Query(value = "SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
