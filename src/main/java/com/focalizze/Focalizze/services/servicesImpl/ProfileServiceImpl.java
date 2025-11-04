@@ -1,9 +1,8 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ProfileResponseDto;
 import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
-import com.focalizze.Focalizze.dto.ThreadResponseDto;
-import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.FollowRepository;
@@ -11,7 +10,8 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
-import com.focalizze.Focalizze.services.ThreadService;
+import com.focalizze.Focalizze.utils.ThreadEnricher;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,31 +22,17 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
 
     private final UserRepository userRepository;
     private final ThreadRepository threadRepository;
     private final FollowRepository followRepository;
-    private final ThreadMapper threadMapper;
     private final FileStorageService fileStorageService;
-
+    private final ThreadEnricher threadEnricher;
     private static final int DAILY_THREAD_LIMIT = 3;
-
-    public ProfileServiceImpl(UserRepository userRepository,
-                              ThreadRepository threadRepository,
-                              FollowRepository followRepository,
-                              ThreadMapper threadMapper,
-                              FileStorageService fileStorageService) {
-        this.userRepository = userRepository;
-        this.threadRepository = threadRepository;
-        this.followRepository = followRepository;
-        this.threadMapper = threadMapper;
-        this.fileStorageService = fileStorageService;
-    }
-
 
     @Override
     @Transactional(readOnly = true)
@@ -89,14 +75,16 @@ public class ProfileServiceImpl implements ProfileService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<ThreadResponseDto> getThreadsForUser(String username, Pageable pageable) {
+    public Page<FeedThreadDto> getThreadsForUser(String username, Pageable pageable) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(user, pageable);
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // Mapear la página de entidades a una lista de DTOs
-        return threadMapper.toDtoList(threadPage.getContent());
+        Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(currentUser, pageable);
+
+        // Usamos el enriquecedor para mapear y enriquecer cada hilo
+        return threadPage.map(thread -> threadEnricher.enrich(thread, currentUser));
     }
 
     @Override
