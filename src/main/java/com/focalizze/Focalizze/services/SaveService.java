@@ -1,6 +1,9 @@
 package com.focalizze.Focalizze.services;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface SaveService {
 
@@ -11,4 +14,5 @@ public interface SaveService {
      */
     void toggleSave(Long threadId, User currentUser);
 
+    Page<FeedThreadDto> getSavedThreadsForCurrentUser(Pageable pageable);
 }
