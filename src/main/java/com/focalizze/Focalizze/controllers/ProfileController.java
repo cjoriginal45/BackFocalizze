@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ProfileResponseDto;
 import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
@@ -7,6 +8,7 @@ import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
@@ -39,7 +41,7 @@ public class ProfileController {
 
     // Endpoint para obtener los hilos del usuario con paginación
     @GetMapping("/{username}/threads")
-    public ResponseEntity<List<ThreadResponseDto>> getProfileThreads(
+    public ResponseEntity<Page<FeedThreadDto>> getProfileThreads(
             @PathVariable String username,
             @PageableDefault(size = 10) Pageable pageable) { // Spring crea el Pageable a partir de ?page=0&size=10
         return ResponseEntity.ok(profileService.getThreadsForUser(username, pageable));
