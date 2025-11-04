@@ -3,6 +3,8 @@ package com.focalizze.Focalizze.repository;
 import com.focalizze.Focalizze.models.SavedThreads;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -39,4 +41,13 @@ public interface SavedThreadRepository extends JpaRepository<SavedThreads, Long>
 
     @Query("SELECT s.thread.id FROM SavedThreads s WHERE s.user = :user AND s.thread.id IN :threadIds")
     Set<Long> findSavedThreadIdsByUserInThreadIds(@Param("user") User user, @Param("threadIds") List<Long> threadIds);
+
+    /**
+     * Busca todos los hilos guardados por un usuario, devolviendo una página de la entidad 'SavedThreads'.
+     * Los resultados se ordenan por la fecha de guardado ('createdAt') de forma descendente.
+     * @param user El usuario cuyos hilos guardados se quieren obtener.
+     * @param pageable Objeto de paginación y ordenamiento.
+     * @return Una página de entidades SavedThreads.
+     */
+    Page<SavedThreads> findByUserOrderByCreatedAtDesc(User user, Pageable pageable);
 }
