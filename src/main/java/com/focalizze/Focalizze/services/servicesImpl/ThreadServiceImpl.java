@@ -60,10 +60,17 @@ public class ThreadServiceImpl implements ThreadService {
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new IllegalStateException("Usuario no encontrado, no se puede crear el hilo."));
 
-        // 2. Buscar la categoría en la base de datos
-        // 2. Search the category in the database
-        CategoryClass category = categoryRepository.findByName(requestDto.category())
-                .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + requestDto.category()));
+        CategoryClass category = null; // Inicia como null
+        String categoryName = requestDto.category();
+
+        // 2. SOLO buscamos en la DB si el usuario envió un nombre de categoría
+        // que NO es nulo Y NO es la palabra "Ninguna" (ignorando mayúsculas/minúsculas).
+        // 2. We ONLY search the database if the user submitted a category name
+        // that is NOT null AND is NOT the word "None" (case-insensitive).
+        if (categoryName != null && !categoryName.equalsIgnoreCase("Ninguna")) {
+            category = categoryRepository.findByName(categoryName)
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + categoryName));
+        }
 
         // 3. Construir la entidad principal del hilo
         // 3. Build the main entity of the thread

@@ -30,12 +30,12 @@ public class ThreadMapper {
         List<String> postContents = thread.getPosts().stream()
                 .map(Post::getContent)
                 .collect(Collectors.toList());
-
+        String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
 
         return new ThreadResponseDto(
                 thread.getId(),
                 authorDto,
-                thread.getCategory().getName(),
+                categoryName,
                 postContents,
                 thread.getCreatedAt(),
                 statsDto
@@ -43,12 +43,9 @@ public class ThreadMapper {
     }
 
     public List<ThreadResponseDto> toDtoList(List<ThreadClass> threads) {
-        // MEJORA 1: Manejo de nulos para robustez.
         if (threads == null) {
             return Collections.emptyList();
         }
-
-        // MEJORA 2: Usamos una referencia a método (this::toDto) para mayor claridad.
         return threads.stream()
                 .map(this::mapToResponseDto)
                 .collect(Collectors.toList());
