@@ -60,7 +60,8 @@ public class CommentMapper {
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
-                user.getAvatarUrl()
+                user.getAvatarUrl(),
+                false
         );
     }
 }

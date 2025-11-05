@@ -17,7 +17,8 @@ public class ThreadMapper {
         UserDto authorDto = new UserDto(thread.getUser().getId(),
                 thread.getUser().getUsername(),
                 thread.getUser().getDisplayName(),
-                thread.getUser().getAvatarUrl()
+                thread.getUser().getAvatarUrl(),
+                false
         );
 
         StatsDto statsDto = new StatsDto(
