@@ -21,4 +21,6 @@ public interface FollowRepository extends JpaRepository<Follow,Long> {
             "AND f.userFollowed.id IN :followedIds")
     Set<Long> findFollowedUserIdsByFollower(@Param("follower") User follower,
                                             @Param("followedIds") Set<Long> followedIds);
+
+    boolean existsByUserFollowerAndUserFollowed(User follower, User followed);
 }

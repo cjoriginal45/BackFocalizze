@@ -14,6 +14,7 @@ import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,39 +38,56 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional(readOnly = true)
     public ProfileResponseDto getProfile(String username) {
-        // 1. Obtener el usuario del perfil
-        // 1. Get the profile user
-        User user = userRepository.findByUsername(username)
+        // 1. Obtener el usuario del perfil que se está visitando.
+        User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
 
-        // 2. Obtener los contadores usando los nuevos métodos del repositorio
-        // 2. Get the counters using the new repository methods
-        long followersCount = followRepository.countByUserFollowed(user);
-        long followingCount = followRepository.countByUserFollower(user);
-        long threadCount = threadRepository.countByUser(user);
+        // 2. Obtener los contadores objetivos del perfil.
+        long followersCount = followRepository.countByUserFollowed(profileUser);
+        long followingCount = followRepository.countByUserFollower(profileUser);
+        long threadCount = threadRepository.countByUser(profileUser);
 
-        // 3. Lógica para los hilos disponibles
-        // 3. Logic for available threads
+        // 3. Obtener el contexto de autenticación del usuario que está haciendo la petición.
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // --- Lógica para datos que dependen del espectador ---
         Long threadsAvailableToday = null;
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        if (username.equals(currentUsername)) {
-            LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-            long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(user, startOfToday);
-            threadsAvailableToday = (Long) Math.max(0, DAILY_THREAD_LIMIT - threadsCreatedToday);
+        boolean isFollowing = false;
+
+        // 4. Comprobamos si el espectador está autenticado.
+        //    Si no lo está, 'authentication' será nulo o no estará autenticado,
+        //    y 'getPrincipal()' devolverá "anonymousUser".
+        if (authentication != null && authentication.isAuthenticated()
+                && authentication.getPrincipal() instanceof User currentUser) {
+
+            // El espectador SÍ está autenticado. Ahora podemos calcular los datos subjetivos.
+
+            // a) Calculamos 'isFollowing'
+            //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
+            isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
+
+            // b) Calculamos 'threadsAvailableToday' SÓLO si el espectador es el dueño del perfil.
+            if (profileUser.getUsername().equals(currentUser.getUsername())) {
+                LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+                long threadsCreatedToday = threadRepository
+                        .countByUserAndCreatedAtAfter(currentUser, startOfToday);
+                threadsAvailableToday = Math.max(0L, DAILY_THREAD_LIMIT - threadsCreatedToday);
+            }
         }
 
-        // 4. Construir y devolver el DTO de respuesta
-        // 4. Build and return the response DTO
+        // 5. Construir y devolver el DTO de respuesta final.
         return new ProfileResponseDto(
-                user.getUsername(),
-                user.getDisplayName(),
-                user.getAvatarUrl(),
-                user.getBiography(),
+                profileUser.getId(),
+                profileUser.getUsername(),
+                profileUser.getDisplayName(),
+                profileUser.getAvatarUrl(),
+                profileUser.getBiography(),
                 (int) followersCount,
                 (int) followingCount,
                 (int) threadCount,
                 threadsAvailableToday,
-                user.getCreatedAt()
+                profileUser.getCreatedAt(),
+                isFollowing
         );
     }
 

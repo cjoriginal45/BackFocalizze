@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.dto;
 import java.time.LocalDateTime;
 
 public record ProfileResponseDto(
+        Long id,
         String username,
         String displayName,
         String avatarUrl,
@@ -11,7 +12,8 @@ public record ProfileResponseDto(
         Integer follow,
         Integer threadCount,
         Long threadsAvailableToday,
-        LocalDateTime registerDate
+        LocalDateTime registerDate,
+        boolean isFollowing
 
 ) {
 }
