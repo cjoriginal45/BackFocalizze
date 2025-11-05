@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
@@ -17,7 +18,8 @@ import java.util.stream.Collectors;
 public class ThreadEnricher {
 
     private final SavedThreadRepository savedThreadRepository;
-    private final FeedMapper feedMapper; // El mapper que convierte ThreadClass -> FeedThreadDto base
+    private final FeedMapper feedMapper;
+    private final FollowRepository followRepository;
 
     /**
      * Toma una entidad ThreadClass y la enriquece con el estado de interacción del usuario actual.
@@ -62,6 +64,14 @@ public class ThreadEnricher {
 
         // 2. Hacemos UNA SOLA consulta a la BD para saber cuáles de estos hilos ha guardado el usuario.
         Set<Long> savedThreadIds = savedThreadRepository.findSavedThreadIdsByUserInThreadIds(currentUser, threadIds);
+
+        // Obtenemos los IDs de todos los autores de los hilos de esta página.
+        Set<Long> authorIds = threads.stream()
+                .map(thread -> thread.getUser().getId())
+                .collect(Collectors.toSet());
+
+        // 2. Hacemos UNA SOLA consulta para saber a cuáles de estos autores ya sigo.
+        Set<Long> followedUserIds = followRepository.findFollowedUserIdsByFollower(currentUser, authorIds);
 
         // --- Mapeo y Enriquecimiento ---
         return threads.stream().map(thread -> {

@@ -3,8 +3,11 @@ package com.focalizze.Focalizze.repository;
 import com.focalizze.Focalizze.models.Follow;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.Set;
 
 public interface FollowRepository extends JpaRepository<Follow,Long> {
 
@@ -13,4 +16,9 @@ public interface FollowRepository extends JpaRepository<Follow,Long> {
     long countByUserFollower(User user);
 
     Optional<Follow> findByUserFollowerAndUserFollowed(User follower, User followed);
+
+    @Query("SELECT f.userFollowed.id FROM Follow f WHERE f.userFollower = :follower " +
+            "AND f.userFollowed.id IN :followedIds")
+    Set<Long> findFollowedUserIdsByFollower(@Param("follower") User follower,
+                                            @Param("followedIds") Set<Long> followedIds);
 }
