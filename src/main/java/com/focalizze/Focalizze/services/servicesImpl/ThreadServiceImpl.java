@@ -162,7 +162,7 @@ public class ThreadServiceImpl implements ThreadService {
 
         return new FeedThreadDto(
                 dto.id(), dto.user(), dto.publicationDate(), dto.posts(),
-                dto.stats(), isLiked, isSaved
+                dto.stats(), isLiked, isSaved, dto.categoryName()
         );
     }
 
