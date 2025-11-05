@@ -76,14 +76,17 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getThreadsForUser(String username, Pageable pageable) {
-        User user = userRepository.findByUsername(username)
+        // 1. Obtener el usuario del perfil que se está visitando.
+        User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
+        // 2. Obtener el usuario que está viendo la página (el que está logueado).
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(currentUser, pageable);
+        // 3. Buscamos los hilos del 'profileUser'.
+        Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(profileUser, pageable);
 
-        // Usamos el enriquecedor para mapear y enriquecer cada hilo
+        // 4. Enriquecemos la respuesta usando el 'currentUser' como contexto.
         return threadPage.map(thread -> threadEnricher.enrich(thread, currentUser));
     }
 

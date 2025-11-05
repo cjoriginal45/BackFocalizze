@@ -35,9 +35,6 @@ public class FeedMapper {
                 thread.getViewCount()
         );
 
-        // --- LÓGICA CLAVE AÑADIDA ---
-        // 1. Verificamos si la categoría del hilo no es nula.
-        // 2. Si no es nula, obtenemos su nombre. Si es nula, asignamos null.
         String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
 
         return new FeedThreadDto(
