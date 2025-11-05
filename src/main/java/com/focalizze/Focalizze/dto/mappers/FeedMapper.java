@@ -2,7 +2,6 @@ package com.focalizze.Focalizze.dto.mappers;
 
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.StatsDto;
-import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
@@ -36,14 +35,20 @@ public class FeedMapper {
                 thread.getViewCount()
         );
 
+        // --- LÓGICA CLAVE AÑADIDA ---
+        // 1. Verificamos si la categoría del hilo no es nula.
+        // 2. Si no es nula, obtenemos su nombre. Si es nula, asignamos null.
+        String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
+
         return new FeedThreadDto(
                 thread.getId(),
                 authorDto,
                 thread.getCreatedAt(),
                 postContents,
                 statsDto,
-                false,
-                false
+                false, // isLiked (se llenará en el Enricher)
+                false, // isSaved (se llenará en el Enricher)
+                categoryName // <-- EL ARGUMENTO QUE FALTABA
         );
     }
 }
