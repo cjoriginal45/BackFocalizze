@@ -4,7 +4,8 @@ public record UserDto(
         Long id,
         String username,
         String displayName,
-        String avatarUrl
+        String avatarUrl,
+        boolean isFollowing
 ) {
 
 }

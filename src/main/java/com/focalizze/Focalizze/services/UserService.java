@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.services;
 
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
 
 import java.util.Optional;
@@ -15,4 +16,6 @@ public interface UserService {
     public boolean validateEmail(String email);
 
     public boolean UserNameAvailable(String username);
+
+    UserDto getUserProfile(String username, User currentUser);
 }
