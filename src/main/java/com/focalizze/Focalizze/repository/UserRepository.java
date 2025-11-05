@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.repository;
 
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,4 +25,22 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE LOWER(u.username) LIKE LOWER(CONCAT(:prefix, '%'))")
     List<User> findTop5ByUsernameStartingWithIgnoreCase(String prefix);
+
+
+    // --- MÉTODOS DE ACTUALIZACIÓN DE CONTADORES ---
+    @Modifying
+    @Query("UPDATE User u SET u.followingCount = u.followingCount + 1 WHERE u.id = :userId")
+    void incrementFollowingCount(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.followingCount = u.followingCount - 1 WHERE u.id = :userId")
+    void decrementFollowingCount(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.followersCount = u.followersCount + 1 WHERE u.id = :userId")
+    void incrementFollowersCount(@Param("userId") Long userId);
+
+    @Modifying
+    @Query("UPDATE User u SET u.followersCount = u.followersCount - 1 WHERE u.id = :userId")
+    void decrementFollowersCount(@Param("userId") Long userId);
 }
