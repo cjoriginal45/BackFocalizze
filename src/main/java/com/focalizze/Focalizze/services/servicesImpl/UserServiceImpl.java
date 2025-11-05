@@ -1,21 +1,23 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.regex.Pattern;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
-
-    public UserServiceImpl(UserRepository userRepository) {
-        this.userRepository = userRepository;
-    }
+    private final FollowRepository followRepository;
 
     @Override
     public Optional<User> findUserByUserName(String username) {
@@ -43,5 +45,29 @@ public class UserServiceImpl implements UserService {
     @Override
     public boolean UserNameAvailable(String username) {
         return userRepository.findUserNameAvailable(username);
+    }
+
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserDto getUserProfile(String username, User currentUser) {
+        // 1. Buscamos al usuario del perfil.
+        User profileUser = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+
+        // 2. Calculamos si el 'currentUser' sigue al 'profileUser'.
+        boolean isFollowing = false;
+        if (currentUser != null) {
+            isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
+        }
+
+        // 3. Construimos y devolvemos el DTO.
+        return new UserDto(
+                profileUser.getId(),
+                profileUser.getUsername(),
+                profileUser.getDisplayName(),
+                profileUser.getAvatarUrl(),
+                isFollowing
+        );
     }
 }
