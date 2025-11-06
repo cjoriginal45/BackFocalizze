@@ -1,27 +1,36 @@
 package com.focalizze.Focalizze.controllers;
 
 import com.focalizze.Focalizze.dto.CategoryDto;
+import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.services.CategoryFollowService;
 import com.focalizze.Focalizze.services.CategoryService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/categories")
+@RequiredArgsConstructor
 public class CategoryController {
 
     private final CategoryService categoryService;
-
-    public CategoryController(CategoryService categoryService) {
-        this.categoryService = categoryService;
-    }
+    private final CategoryFollowService categoryFollowService;
 
     @GetMapping
     public ResponseEntity<List<CategoryDto>> getAllCategories() {
         List<CategoryDto> categories = categoryService.getAllCategories();
         return ResponseEntity.ok(categories);
+    }
+
+    @PostMapping("/{id}/follow")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> toggleFollow(@PathVariable Long id){
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        categoryFollowService.toggleFollowCategory(id, currentUser);
+        return ResponseEntity.ok().build();
     }
 }
