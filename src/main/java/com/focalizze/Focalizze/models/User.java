@@ -75,13 +75,8 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "user")
     private List<InteractionLog> interactions;
 
-    @ManyToMany
-    @JoinTable(
-            name = "categories_users",
-            joinColumns = @JoinColumn(name = "user_id"),           // FK a User
-            inverseJoinColumns = @JoinColumn(name = "category_id") // FK a Category
-    )
-    private Set<CategoryClass> categories;
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CategoryFollow> followedCategories;
 
     @OneToMany(mappedBy="userFollower")
     private List<Follow> following;
@@ -92,7 +87,6 @@ public class User implements UserDetails {
     public User(){
         this.savedThreads = new ArrayList<>();
         this.comments = new ArrayList<>();
-        this.categories = new HashSet<>();
         this.followers = new ArrayList<>();
         this.following = new ArrayList<>();
         this.likes = new ArrayList<>();
@@ -101,6 +95,7 @@ public class User implements UserDetails {
         this.reportsMade = new ArrayList<>();
         this.reportsReceived = new ArrayList<>();
         this.interactions = new ArrayList<>();
+        this.followedCategories = new HashSet<>();
     }
 
 
@@ -170,7 +165,6 @@ public class User implements UserDetails {
                 ", likes=" + likes +
                 ", reportsMade=" + reportsMade +
                 ", reportsReceived=" + reportsReceived +
-                ", categories=" + categories +
                 ", following=" + following +
                 ", followers=" + followers +
                 '}';

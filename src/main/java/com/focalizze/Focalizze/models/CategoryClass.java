@@ -27,16 +27,19 @@ public class CategoryClass {
 
     private String description;
 
-    @ManyToMany(mappedBy="categories") //category depende de user
-    private Set<User> users;
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CategoryFollow> followers;
 
     @OneToMany(mappedBy="category")
     private List<ThreadClass> threads;
 
 
+    @Builder.Default
+    private Integer followersCount = 0;
+
     public CategoryClass(){
         this.threads = new ArrayList<>();
-        this.users = new HashSet<>();
+        this.followers = new HashSet<>();
     }
 
     public CategoryClass(String name) {
