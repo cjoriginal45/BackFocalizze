@@ -1,10 +1,7 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,7 +10,8 @@ import java.util.Set;
 
 @AllArgsConstructor
 @Builder
-@Data
+@Setter
+@Getter
 @Entity
 @Table(name = "category_tbl")
 public class CategoryClass {
@@ -27,16 +25,19 @@ public class CategoryClass {
 
     private String description;
 
-    @ManyToMany(mappedBy="categories") //category depende de user
-    private Set<User> users;
+    @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
+    private Set<CategoryFollow> followers;
 
     @OneToMany(mappedBy="category")
     private List<ThreadClass> threads;
 
 
+    @Builder.Default
+    private Integer followersCount = 0;
+
     public CategoryClass(){
         this.threads = new ArrayList<>();
-        this.users = new HashSet<>();
+        this.followers = new HashSet<>();
     }
 
     public CategoryClass(String name) {
