@@ -1,10 +1,7 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -13,7 +10,8 @@ import java.util.Set;
 
 @AllArgsConstructor
 @Builder
-@Data
+@Setter
+@Getter
 @Entity
 @Table(name = "category_tbl")
 public class CategoryClass {

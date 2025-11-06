@@ -169,4 +169,18 @@ public class User implements UserDetails {
                 ", followers=" + followers +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        User user = (User) o;
+        return id != null && Objects.equals(id, user.id);
+    }
+
+    @Override
+    public int hashCode() {
+        // Usa una constante para asegurar que el hash de objetos no persistidos no sea 0.
+        return getClass().hashCode();
+    }
 }
