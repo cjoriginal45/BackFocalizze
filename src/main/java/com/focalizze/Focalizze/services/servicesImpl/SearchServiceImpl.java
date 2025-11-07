@@ -10,6 +10,7 @@ import com.focalizze.Focalizze.repository.CategoryRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.SearchService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,20 +19,13 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
 
     private final UserRepository userRepository;
     private final CategoryRepository categoryRepository;
     private final ThreadRepository threadRepository;
     private final ThreadMapper threadMapper;
-
-    public SearchServiceImpl(UserRepository userRepository, CategoryRepository categoryRepository,
-                             ThreadRepository threadRepository, ThreadMapper threadMapper) {
-        this.userRepository = userRepository;
-        this.categoryRepository = categoryRepository;
-        this.threadRepository = threadRepository;
-        this.threadMapper = threadMapper;
-    }
 
     @Override
     public List<UserSearchDto> searchUsersByPrefix(String prefix) {
