@@ -67,13 +67,21 @@ public class ThreadServiceImpl implements ThreadService {
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + categoryName));
         }
 
+        boolean isScheduled = requestDto.scheduledTime() != null;
+
+        // Validar que la fecha programada no sea en el pasado
+        if (isScheduled && requestDto.scheduledTime().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("La fecha de programación no puede ser en el pasado.");
+        }
+
         // Construir la entidad principal del hilo
         // Build the main entity of the thread
         ThreadClass newThread = ThreadClass.builder()
                 .user(currentUser)
                 .category(category)
                 .createdAt(LocalDateTime.now())
-                .isPublished(true) // false si es un hilo programado
+                .isPublished(!isScheduled) // false si es un hilo programado
+                .scheduledTime(requestDto.scheduledTime())
                 .likeCount(0)
                 .commentCount(0)
                 .saveCount(0)

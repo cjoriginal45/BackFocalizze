@@ -61,4 +61,5 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE t.id = :threadId")
     Optional<ThreadClass> findByIdWithDetails(@Param("threadId") Long threadId);
 
+    List<ThreadClass> findAllByIsPublishedFalseAndScheduledTimeBefore(LocalDateTime currentTime);
 }
