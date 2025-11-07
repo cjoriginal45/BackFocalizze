@@ -18,4 +18,6 @@ public interface UserService {
     public boolean UserNameAvailable(String username);
 
     UserDto getUserProfile(String username, User currentUser);
+
+    public UserDto mapToUserDto(User user);
 }
