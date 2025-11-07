@@ -15,6 +15,7 @@ import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.ThreadService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
+@RequiredArgsConstructor
 public class ThreadServiceImpl implements ThreadService {
 
     private final ThreadRepository threadRepository;
@@ -36,44 +38,37 @@ public class ThreadServiceImpl implements ThreadService {
 
     private static final int DAILY_THREAD_LIMIT = 3;
 
-    public ThreadServiceImpl(ThreadRepository threadRepository,
-                             UserRepository userRepository,
-                             CategoryRepository categoryRepository,
-                             ThreadMapper threadMapper, FeedMapper feedMapper, SavedThreadRepository savedThreadRepository) {
-        this.threadRepository = threadRepository;
-        this.userRepository = userRepository;
-        this.categoryRepository = categoryRepository;
-        this.threadMapper = threadMapper;
-        this.feedMapper = feedMapper;
-        this.savedThreadRepository = savedThreadRepository;
-    }
-
 
     //Logica de negocio para crear un hilo
     //Business logic to create a thread
     @Override
     @Transactional
     public ThreadResponseDto createThread(ThreadRequestDto requestDto) {
-        // 1. Obtener el usuario autenticado desde el contexto de seguridad
-        // 1. Get the authenticated user from the security context
+        // Obtener el usuario autenticado desde el contexto de seguridad
+        // Get the authenticated user from the security context
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new IllegalStateException("Usuario no encontrado, no se puede crear el hilo."));
 
+        // Calcular cuántos hilos ha creado el usuario hoy
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(currentUser, startOfToday);
+
+        if (threadsCreatedToday >= DAILY_THREAD_LIMIT) {
+            // Si se alcanza el límite, lanzamos la excepción y la ejecución se detiene aquí.
+            throw new DailyLimitExceededException("Límite diario de " + DAILY_THREAD_LIMIT + " hilos alcanzado.");
+        }
+
         CategoryClass category = null; // Inicia como null
         String categoryName = requestDto.category();
 
-        // 2. SOLO buscamos en la DB si el usuario envió un nombre de categoría
-        // que NO es nulo Y NO es la palabra "Ninguna" (ignorando mayúsculas/minúsculas).
-        // 2. We ONLY search the database if the user submitted a category name
-        // that is NOT null AND is NOT the word "None" (case-insensitive).
         if (categoryName != null && !categoryName.equalsIgnoreCase("Ninguna")) {
             category = categoryRepository.findByName(categoryName)
                     .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + categoryName));
         }
 
-        // 3. Construir la entidad principal del hilo
-        // 3. Build the main entity of the thread
+        // Construir la entidad principal del hilo
+        // Build the main entity of the thread
         ThreadClass newThread = ThreadClass.builder()
                 .user(currentUser)
                 .category(category)
@@ -85,8 +80,8 @@ public class ThreadServiceImpl implements ThreadService {
                 .viewCount(0)
                 .build();
 
-        // 4. Construir las entidades de los posts y asociarlas al hilo
-        // 4. Build the post entities and associate them with the thread
+        // Construir las entidades de los posts y asociarlas al hilo
+        // Build the post entities and associate them with the thread
         Post post1 = Post.builder()
                 .content(requestDto.post1())
                 .position(1)
@@ -109,15 +104,15 @@ public class ThreadServiceImpl implements ThreadService {
         // The relationship is bidirectional, so we add the posts to the thread list
         newThread.setPosts(List.of(post1, post2, post3));
 
-        // 5. Guardar el hilo en la base de datos
+        // Guardar el hilo en la base de datos
         // Gracias a `cascade = CascadeType.ALL`, al guardar el hilo, los posts se guardarán automáticamente.
-        // 5. Save the thread to the database
+        // Save the thread to the database
         // Thanks to `cascade = CascadeType.ALL`, when saving the thread, the messages will be saved automatically.
         ThreadClass savedThread = threadRepository.save(newThread);
 
 
-        // 6. Mapear la entidad guardada a un DTO de respuesta y devolverlo
-        // 6. Map the saved entity to a response DTO and return it
+        // Mapear la entidad guardada a un DTO de respuesta y devolverlo
+        // Map the saved entity to a response DTO and return it
         return threadMapper.mapToResponseDto(savedThread);
     }
 
@@ -172,26 +167,5 @@ public class ThreadServiceImpl implements ThreadService {
                 dto.stats(), isLiked, isSaved, dto.categoryName()
         );
     }
-
-    @Override
-    @Transactional
-    public long countByUserAndCreatedAtAfter(User user, LocalDateTime startOfDay) {
-        // 1. Obtener el usuario autenticado
-        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new IllegalStateException("Usuario no autenticado, no se puede crear el hilo."));
-
-        // 2. Calcular cuántos hilos ha creado el usuario hoy
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay(); // Obtiene la fecha de hoy a las 00:00:00
-        long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(currentUser, startOfToday);
-
-        // 3. Aplicar la regla de negocio
-        if (threadsCreatedToday >= DAILY_THREAD_LIMIT) {
-            throw new DailyLimitExceededException("Límite diario de hilos alcanzado.");
-        }
-
-        return threadsCreatedToday;
-    }
-
 
 }

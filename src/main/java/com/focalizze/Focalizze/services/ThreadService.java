@@ -12,6 +12,4 @@ public interface ThreadService {
     ThreadResponseDto createThread(ThreadRequestDto requestDto);
 
     FeedThreadDto getThreadByIdAndIncrementView(Long threadId);
-
-    long countByUserAndCreatedAtAfter(User user, LocalDateTime startOfDay);
 }
