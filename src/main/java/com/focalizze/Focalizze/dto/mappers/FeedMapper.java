@@ -21,7 +21,9 @@ public class FeedMapper {
                 thread.getUser().getUsername(),
                 thread.getUser().getDisplayName(),
                 thread.getUser().getAvatarUrl(),
-                false
+                false,
+                thread.getUser().getFollowingCount(),
+                thread.getUser().getFollowersCount()
         );
 
         List<String> postContents = thread.getPosts().stream()

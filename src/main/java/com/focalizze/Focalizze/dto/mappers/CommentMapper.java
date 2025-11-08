@@ -61,7 +61,9 @@ public class CommentMapper {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(),
-                false
+                false,
+                user.getFollowingCount(),
+                user.getFollowersCount()
         );
     }
 }

@@ -67,7 +67,9 @@ public class UserServiceImpl implements UserService {
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
                 profileUser.getAvatarUrl(),
-                isFollowing
+                isFollowing,
+                profileUser.getFollowingCount(),
+                profileUser.getFollowersCount()
         );
     }
 
@@ -81,7 +83,9 @@ public class UserServiceImpl implements UserService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(),
-                false
+                false,
+                user.getFollowingCount(),
+                user.getFollowersCount()
         );
     }
 }
