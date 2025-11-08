@@ -69,9 +69,13 @@ public class ThreadServiceImpl implements ThreadService {
 
         boolean isScheduled = requestDto.scheduledTime() != null;
 
-        // Validar que la fecha programada no sea en el pasado
-        if (isScheduled && requestDto.scheduledTime().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("La fecha de programación no puede ser en el pasado.");
+        LocalDateTime creationTime = LocalDateTime.now();
+        LocalDateTime publicationTime;
+
+        if (isScheduled) {
+            publicationTime = requestDto.scheduledTime(); // La publicación es en el futuro
+        } else {
+            publicationTime = creationTime; // La publicación es ahora
         }
 
         // Construir la entidad principal del hilo
@@ -80,7 +84,8 @@ public class ThreadServiceImpl implements ThreadService {
                 .user(currentUser)
                 .category(category)
                 .createdAt(LocalDateTime.now())
-                .isPublished(!isScheduled) // false si es un hilo programado
+                .isPublished(!isScheduled)
+                .publishedAt(publicationTime)
                 .scheduledTime(requestDto.scheduledTime())
                 .likeCount(0)
                 .commentCount(0)

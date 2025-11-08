@@ -40,6 +40,9 @@ public class ThreadClass {
 
     private Integer viewCount = 0;
 
+    @Column(nullable = false)
+    private LocalDateTime publishedAt;
+
     @ManyToOne
     @JoinColumn(name="user_id") //foreign key
     private User user;

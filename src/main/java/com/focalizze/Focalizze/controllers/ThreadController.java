@@ -27,6 +27,7 @@ public class ThreadController {
     @PostMapping("/create")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<ThreadResponseDto> createThread(@Valid @RequestBody ThreadRequestDto threadRequestDto) {
+
         // Obtenemos el usuario autenticado del contexto de seguridad
         // Get the authenticated user from the security context
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

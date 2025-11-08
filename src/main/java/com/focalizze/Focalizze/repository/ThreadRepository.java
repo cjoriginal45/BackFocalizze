@@ -22,12 +22,12 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      Gets a page of threads for the feed, fetching author information
      in the same query to avoid the N+1 problem.
      */
-    @Query(value = "SELECT DISTINCT t FROM ThreadClass t " +
+    @Query(value = "SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
-            "LEFT JOIN FETCH t.likes l " +
-            "LEFT JOIN FETCH l.user lu",
-            countQuery = "SELECT count(t) FROM ThreadClass t")
+            "WHERE t.isPublished = true " +
+            "ORDER BY t.publishedAt DESC", // <-- ¡ORDENAMOS POR 'publishedAt'!
+            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.isPublished = true")
     Page<ThreadClass> findThreadsForFeed(Pageable pageable);
 
 
@@ -50,8 +50,9 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
     @Query(value = "SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
-            "WHERE t.user = :user",
-            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.user = :user")
+            "WHERE t.user = :user AND t.isPublished = true " +
+            "ORDER BY t.publishedAt DESC", // <-- ¡ORDENAMOS POR 'publishedAt'!
+            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.user = :user AND t.isPublished = true")
     Page<ThreadClass> findByUserWithDetails(@Param("user") User user, Pageable pageable);
 
     @Query("SELECT t FROM ThreadClass t " +
@@ -61,5 +62,6 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE t.id = :threadId")
     Optional<ThreadClass> findByIdWithDetails(@Param("threadId") Long threadId);
 
-    List<ThreadClass> findAllByIsPublishedFalseAndScheduledTimeBefore(LocalDateTime currentTime);
+    @Query("SELECT t FROM ThreadClass t WHERE t.isPublished = false AND t.scheduledTime <= :currentTime")
+    List<ThreadClass> findThreadsToPublish(@Param("currentTime") LocalDateTime currentTime);
 }
