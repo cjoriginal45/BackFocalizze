@@ -15,7 +15,10 @@ public class LoginMapper {
         return new LoginResponseDto(
                 user.getId(),
                 token,
-                user.getDisplayName()
+                user.getDisplayName(),
+                user.getAvatarUrl(),
+                user.getFollowingCount(),
+                user.getFollowersCount()
         );
     }
 

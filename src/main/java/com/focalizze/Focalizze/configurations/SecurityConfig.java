@@ -47,6 +47,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/thread/**").permitAll() // Permite GET a /api/thread/{id} / Allow GET to /api/thread/{id}
                         .requestMatchers("/api/thread/**").authenticated()
 
+                        .requestMatchers(HttpMethod.GET, "/api/profiles/**",
+                                "/api/thread/**",
+                                "/api/categories",
+                                "/api/search/**").permitAll()
+
                         // REGLA 3 (Final): Cualquier otra petición no especificada también requiere autenticación
                         .anyRequest().authenticated()
                 )

@@ -13,7 +13,9 @@ public record ProfileResponseDto(
         Integer threadCount,
         Long threadsAvailableToday,
         LocalDateTime registerDate,
-        boolean isFollowing
+        boolean isFollowing,
+        Integer followingCount,
+        Integer followersCount
 
 ) {
 }

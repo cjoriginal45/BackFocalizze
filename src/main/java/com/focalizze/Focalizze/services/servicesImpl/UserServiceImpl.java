@@ -67,7 +67,25 @@ public class UserServiceImpl implements UserService {
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
                 profileUser.getAvatarUrl(),
-                isFollowing
+                isFollowing,
+                profileUser.getFollowingCount(),
+                profileUser.getFollowersCount()
+        );
+    }
+
+    public UserDto mapToUserDto(User user) {
+        if (user == null) {
+            return null;
+        }
+        // Para el endpoint "/me", 'isFollowing' no aplica, así que siempre es false.
+        return new UserDto(
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getAvatarUrl(),
+                false,
+                user.getFollowingCount(),
+                user.getFollowersCount()
         );
     }
 }

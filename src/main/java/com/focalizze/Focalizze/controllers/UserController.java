@@ -43,4 +43,16 @@ public class UserController {
         UserDto userDto = userService.getUserProfile(username, currentUser);
         return ResponseEntity.ok(userDto);
     }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()") // Asegura que solo usuarios logueados puedan acceder
+    public ResponseEntity<UserDto> getMyProfile() {
+        // Obtenemos el usuario autenticado del contexto de seguridad.
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        // Mapeamos la entidad al DTO.
+        UserDto userDto = userService.mapToUserDto(currentUser);
+
+        return ResponseEntity.ok(userDto);
+    }
 }

@@ -5,7 +5,9 @@ public record UserDto(
         String username,
         String displayName,
         String avatarUrl,
-        boolean isFollowing
+        boolean isFollowing,
+        Integer followingCount,
+        Integer followersCount
 ) {
 
 }

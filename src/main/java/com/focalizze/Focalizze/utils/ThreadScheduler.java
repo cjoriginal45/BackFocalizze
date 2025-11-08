@@ -29,7 +29,7 @@ public class ThreadScheduler {
 
         // 1. Busca hilos que necesitan ser publicados.
         List<ThreadClass> threadsToPublish = threadRepository
-                .findAllByIsPublishedFalseAndScheduledTimeBefore(LocalDateTime.now());
+                .findThreadsToPublish(LocalDateTime.now());
 
         if (threadsToPublish.isEmpty()) {
             log.info("No hay hilos para publicar en este momento.");
@@ -39,7 +39,6 @@ public class ThreadScheduler {
         // 2. Actualiza cada hilo.
         for (ThreadClass thread : threadsToPublish) {
             thread.setPublished(true);
-            thread.setScheduledTime(null); // Opcional: limpiar la fecha de programación
         }
 
         // 3. Guarda todos los cambios en la base de datos.
