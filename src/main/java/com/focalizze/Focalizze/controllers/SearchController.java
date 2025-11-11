@@ -35,4 +35,6 @@ public class SearchController {
         List<ThreadResponseDto> results = searchService.searchContent(query);
         return ResponseEntity.ok(results);
     }
+
+
 }

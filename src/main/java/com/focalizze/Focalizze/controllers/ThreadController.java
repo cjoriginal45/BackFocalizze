@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.controllers;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.ThreadUpdateRequestDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.LikeService;
 import com.focalizze.Focalizze.services.SaveService;
@@ -39,15 +40,6 @@ public class ThreadController {
         return new ResponseEntity<>(response, HttpStatus.CREATED);
     }
 
-    /**
-     * Endpoint para dar o quitar un "like" a un hilo.
-     * @param threadId El ID del hilo, extraído de la URL.
-     * @return Una respuesta 200 OK si la operación es exitosa.
-     * /
-     * Endpoint for liking or unliking a thread.
-     * * @param threadId The thread ID, extracted from the URL.
-     * * @return A 200 OK response if the operation is successful.
-     */
     @PostMapping("/{threadId}/like")
     @PreAuthorize("isAuthenticated()") // Solo usuarios autenticados pueden dar like / // Only authenticated users can give like
     public ResponseEntity<Void> toggleLike(@PathVariable Long threadId) {
@@ -80,5 +72,25 @@ public class ThreadController {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         saveService.toggleSave(threadId, currentUser);
         return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<Void> deleteThread(@PathVariable Long id) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        threadService.deleteThread(id, currentUser);
+        // 204 No Content
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ThreadResponseDto> updateThread(
+            @PathVariable Long id,
+            @Valid @RequestBody ThreadUpdateRequestDto updateDto
+    ) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        ThreadResponseDto updatedThread = threadService.updateThread(id, updateDto, currentUser);
+        return ResponseEntity.ok(updatedThread);
     }
 }
