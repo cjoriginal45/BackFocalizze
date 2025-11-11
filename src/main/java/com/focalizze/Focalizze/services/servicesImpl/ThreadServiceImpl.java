@@ -198,8 +198,19 @@ public class ThreadServiceImpl implements ThreadService {
             posts.get(2).setContent(updateDto.post3());
         }
 
-        // La transacción se encargará de persistir los cambios en los posts gestionados.
-        // No es necesario llamar a postRepository.save().
+        // Comprobamos si se proporcionó un nuevo nombre de categoría en el DTO.
+        if (updateDto.categoryName() != null) {
+            // Si el nombre es "Ninguna", significa que el usuario quiere quitar la categoría.
+            if (updateDto.categoryName().equalsIgnoreCase("Ninguna")) {
+                thread.setCategory(null);
+            } else {
+                // Si es otro nombre, buscamos la categoría en la base de datos.
+                CategoryClass newCategory = categoryRepository.findByName(updateDto.categoryName())
+                        .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + updateDto.categoryName()));
+                // Asignamos la nueva categoría al hilo.
+                thread.setCategory(newCategory);
+            }
+        }
 
         // Devolvemos el hilo actualizado.
         return threadMapper.mapToResponseDto(thread);
