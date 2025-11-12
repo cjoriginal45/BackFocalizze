@@ -212,8 +212,10 @@ public class ThreadServiceImpl implements ThreadService {
             }
         }
 
+        ThreadClass threadSaved = threadRepository.save(thread);
+
         // Devolvemos el hilo actualizado.
-        return threadMapper.mapToResponseDto(thread);
+        return threadMapper.mapToResponseDto(threadSaved);
     }
 
     // Método privado refactorizado para evitar duplicar código
