@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.ThreadUpdateRequestDto;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
 import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
@@ -16,12 +17,14 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.ThreadService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -150,6 +153,69 @@ public class ThreadServiceImpl implements ThreadService {
         // 4. Mapeamos y enriquecemos el DTO para la respuesta
         // 4. We map and enrich the DTO for the response
         return enrichDtoWithUserData(updatedThread);
+    }
+
+    @Override
+    @Transactional
+    public void deleteThread(Long threadId, User currentUser) {
+        ThreadClass thread = threadRepository.findById(threadId)
+                .orElseThrow(() -> new NoSuchElementException("Hilo no encontrado con ID: " + threadId));
+
+        // Verificación de permisos: ¿El usuario actual es el autor del hilo?
+        if (!thread.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("No tienes permiso para borrar este hilo.");
+        }
+
+        // Realizamos el borrado lógico.
+        thread.setDeleted(true);
+
+        // Guardamos la entidad actualizada.
+        threadRepository.save(thread);
+    }
+
+    @Override
+    public ThreadResponseDto updateThread(Long threadId, ThreadUpdateRequestDto updateDto, User currentUser) {
+        ThreadClass thread = threadRepository.findByIdWithDetails(threadId) // Usamos la consulta que hace JOIN FETCH a posts
+                .orElseThrow(() -> new NoSuchElementException("Hilo no encontrado con ID: " + threadId));
+
+        // Verificación de permisos.
+        if (!thread.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("No tienes permiso para editar este hilo.");
+        }
+
+        // Actualizamos el contenido de los posts si se proporcionó en el DTO.
+        List<Post> posts = thread.getPosts().stream()
+                .sorted(Comparator.comparing(Post::getPosition))
+                .toList();
+
+        if (updateDto.post1() != null && !updateDto.post1().isBlank()) {
+            posts.get(0).setContent(updateDto.post1());
+        }
+        if (posts.size() > 1 && updateDto.post2() != null && !updateDto.post2().isBlank()) {
+            posts.get(1).setContent(updateDto.post2());
+        }
+        if (posts.size() > 2 && updateDto.post3() != null && !updateDto.post3().isBlank()) {
+            posts.get(2).setContent(updateDto.post3());
+        }
+
+        // Comprobamos si se proporcionó un nuevo nombre de categoría en el DTO.
+        if (updateDto.categoryName() != null) {
+            // Si el nombre es "Ninguna", significa que el usuario quiere quitar la categoría.
+            if (updateDto.categoryName().equalsIgnoreCase("Ninguna")) {
+                thread.setCategory(null);
+            } else {
+                // Si es otro nombre, buscamos la categoría en la base de datos.
+                CategoryClass newCategory = categoryRepository.findByName(updateDto.categoryName())
+                        .orElseThrow(() -> new IllegalArgumentException("Categoría no válida: " + updateDto.categoryName()));
+                // Asignamos la nueva categoría al hilo.
+                thread.setCategory(newCategory);
+            }
+        }
+
+        ThreadClass threadSaved = threadRepository.save(thread);
+
+        // Devolvemos el hilo actualizado.
+        return threadMapper.mapToResponseDto(threadSaved);
     }
 
     // Método privado refactorizado para evitar duplicar código

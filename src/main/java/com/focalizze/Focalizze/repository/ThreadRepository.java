@@ -22,20 +22,20 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      Gets a page of threads for the feed, fetching author information
      in the same query to avoid the N+1 problem.
      */
+
     @Query(value = "SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
-            "WHERE t.isPublished = true " +
-            "ORDER BY t.publishedAt DESC", // <-- ¡ORDENAMOS POR 'publishedAt'!
-            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.isPublished = true")
+            "WHERE t.isPublished = true AND t.isDeleted = false",
+            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.isPublished = true AND t.isDeleted = false")
     Page<ThreadClass> findThreadsForFeed(Pageable pageable);
 
 
-    @Query("SELECT t FROM ThreadClass t WHERE EXISTS " +
+    @Query("SELECT t FROM ThreadClass t WHERE t.isPublished = true AND t.isDeleted = false AND EXISTS  " +
             "(SELECT 1 FROM t.posts p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<ThreadClass> findByPostContentContainingIgnoreCase(@Param("query") String query);
 
-    @Query("SELECT t FROM ThreadClass t WHERE t.category = :category")
+    @Query("SELECT t FROM ThreadClass t WHERE t.category = :category AND t.isPublished = true AND t.isDeleted = false")
     List<ThreadClass> findByCategory(@Param("category") CategoryClass category);
 
     // Busca una "página" de hilos para un usuario específico, ordenados por fecha de creación descendente.
@@ -50,15 +50,14 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
     @Query(value = "SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
-            "WHERE t.user = :user AND t.isPublished = true " +
-            "ORDER BY t.publishedAt DESC", // <-- ¡ORDENAMOS POR 'publishedAt'!
-            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.user = :user AND t.isPublished = true")
+            "WHERE t.user = :user AND t.isPublished = true AND t.isDeleted = false",
+            countQuery = "SELECT count(t) FROM ThreadClass t WHERE t.user = :user AND t.isPublished = true AND t.isDeleted = false")
     Page<ThreadClass> findByUserWithDetails(@Param("user") User user, Pageable pageable);
 
     @Query("SELECT t FROM ThreadClass t " +
             "LEFT JOIN FETCH t.user u " +
             "LEFT JOIN FETCH t.category c " +
-            "LEFT JOIN FETCH t.posts p " + // También traemos los posts
+            "LEFT JOIN FETCH t.posts p " +
             "WHERE t.id = :threadId")
     Optional<ThreadClass> findByIdWithDetails(@Param("threadId") Long threadId);
 

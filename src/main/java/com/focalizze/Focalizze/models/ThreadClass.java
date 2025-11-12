@@ -41,6 +41,10 @@ public class ThreadClass {
     private Integer viewCount = 0;
 
     @Column(nullable = false)
+    @Builder.Default
+    private boolean isDeleted = false;
+
+    @Column(nullable = false)
     private LocalDateTime publishedAt;
 
     @ManyToOne
