@@ -47,14 +47,21 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      */
     @Query(value = "SELECT t FROM ThreadClass t " +
             "WHERE t.isPublished = true AND t.isDeleted = false " +
-            "AND (t.user.id IN (:followedUserIds) OR t.category.id IN (:followedCategoryIds)) " +
+            "AND (" +
+            "    t.user.id IN :followedUserIds " +
+            "    OR t.category.id IN :followedCategoryIds " +
+            "    OR t.user.id = :currentUserId" +
+            ") " +
             "ORDER BY t.publishedAt DESC",
             countQuery = "SELECT count(t) FROM ThreadClass t " +
                     "WHERE t.isPublished = true AND t.isDeleted = false " +
-                    "AND (t.user.id IN :followedUserIds OR t.category.id IN :followedCategoryIds)")
+                    "AND (t.user.id IN :followedUserIds " +
+                    "OR t.category.id IN :followedCategoryIds " +
+                    "OR t.user.id = :currentUserId)")
     Page<ThreadClass> findFollowingFeed(
             @Param("followedUserIds") List<Long> followedUserIds,
             @Param("followedCategoryIds") List<Long> followedCategoryIds,
+            @Param("currentUserId") Long currentUserId, // <-- ¡PARÁMETRO NUEVO AÑADIDO!
             Pageable pageable
     );
 
