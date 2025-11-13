@@ -55,6 +55,7 @@ public class FeedServiceImpl implements FeedService {
         Page<ThreadClass> threadPage = threadRepository.findFollowingFeed(
                 followedUserIds,
                 followedCategoryIds,
+                currentUser.getId(),
                 pageable
         );
 
