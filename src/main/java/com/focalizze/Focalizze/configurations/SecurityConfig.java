@@ -37,24 +37,33 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+
+                        // --- BLOQUE 1: RUTAS PÚBLICAS (ACCESO SIN LOGIN) ---
+                        // Se permite el acceso a todos los endpoints de autenticación y registro.
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/thread/**").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/api/profiles/avatars/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/profile/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/categories").authenticated()
 
-                        // REGLA 2: Rutas que requieren autenticación para interactuar con hilos
-                        .requestMatchers(HttpMethod.GET, "/api/thread/**").permitAll() // Permite GET a /api/thread/{id} / Allow GET to /api/thread/{id}
-                        .requestMatchers("/api/thread/**").authenticated()
-
-                        .requestMatchers(HttpMethod.GET, "/api/profiles/**",
+                        // Se permite la LECTURA (GET) de contenido público.
+                        // Esto incluye ver perfiles, avatares, hilos individuales, categorías, y resultados de búsqueda.
+                        .requestMatchers(HttpMethod.GET,
+                                "/api/profiles/**",
                                 "/api/thread/**",
                                 "/api/categories",
-                                "/api/search/**").permitAll()
+                                "/api/search/**"
+                        ).permitAll()
 
-                        // REGLA 3 (Final): Cualquier otra petición no especificada también requiere autenticación
+                        // --- BLOQUE 2: RUTAS CON AUTENTICACIÓN ---
+                        // Si una petición no coincide con ninguna de las reglas anteriores,
+                        // esta regla final se aplica, exigiendo que el usuario esté autenticado.
+                        // Esto protege automáticamente:
+                        //   - GET /api/feed (tu feed personalizado)
+                        //   - GET /api/saved-threads
+                        //   - GET /api/users/me/interactions
+                        //   - POST, PATCH, DELETE a /api/thread/**
+                        //   - POST a /api/users/{username}/follow
+                        //   - Y cualquier otro endpoint que crees en el futuro.
                         .anyRequest().authenticated()
                 )
+
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

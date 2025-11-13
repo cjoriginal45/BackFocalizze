@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.ThreadRepository;
+import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.FeedService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
@@ -21,22 +22,47 @@ import java.util.List;
 public class FeedServiceImpl implements FeedService {
     private final ThreadRepository threadRepository;
     private final ThreadEnricher threadEnricher;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getFeed(Pageable pageable) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // 1. Obtenemos al usuario autenticado y lo recargamos para acceder a sus colecciones LAZY.
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"));
 
-        // 1. Obtenemos la página de entidades.
-        Page<ThreadClass> threadPage = threadRepository.findThreadsForFeed(pageable); // Con JOIN FETCH
+        // 2. Extraemos las listas de IDs que el usuario sigue.
+        List<Long> followedUserIds = currentUser.getFollowing().stream()
+                .map(follow -> follow.getUserFollowed().getId())
+                .toList();
 
-        // 2. Obtenemos la lista de contenido de la página.
+        List<Long> followedCategoryIds = currentUser.getFollowedCategories().stream()
+                .map(categoryFollow -> categoryFollow.getCategory().getId())
+                .toList();
+
+        if (followedUserIds.isEmpty() && followedCategoryIds.isEmpty()) {
+            return Page.empty(pageable);
+        }
+
+        // (Añadimos placeholders si alguna lista está vacía para que la consulta IN no falle)
+        if (followedUserIds.isEmpty()) { followedUserIds.add(-1L); }
+        if (followedCategoryIds.isEmpty()) { followedCategoryIds.add(-1L); }
+
+        // 3. Obtenemos la PÁGINA de entidades 'ThreadClass' filtradas.
+        Page<ThreadClass> threadPage = threadRepository.findFollowingFeed(
+                followedUserIds,
+                followedCategoryIds,
+                pageable
+        );
+
+        //    Extraemos la LISTA de contenido de la página.
         List<ThreadClass> threadsOnPage = threadPage.getContent();
 
-        // 3. Usamos el método optimizado 'enrichList' para enriquecer la lista.
-        List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(threadsOnPage, currentUser);
+        //    Pasamos la LISTA al enriquecedor.
+        List<FeedThreadDto> enrichedContent = threadEnricher.enrichList(threadsOnPage, currentUser);
 
-        // 4. Creamos una nueva instancia de 'Page' con el contenido enriquecido.
-        return new PageImpl<>(enrichedDtoList, pageable, threadPage.getTotalElements());
+        // 5. Reconstruimos y devolvemos un nuevo objeto 'Page'.
+        return new PageImpl<>(enrichedContent, pageable, threadPage.getTotalElements());
     }
 }
