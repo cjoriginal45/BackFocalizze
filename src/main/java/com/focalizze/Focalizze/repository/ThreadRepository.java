@@ -47,7 +47,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      */
     @Query(value = "SELECT t FROM ThreadClass t " +
             "WHERE t.isPublished = true AND t.isDeleted = false " +
-            "AND (t.user.id IN :followedUserIds OR t.category.id IN :followedCategoryIds) " +
+            "AND (t.user.id IN (:followedUserIds) OR t.category.id IN (:followedCategoryIds)) " +
             "ORDER BY t.publishedAt DESC",
             countQuery = "SELECT count(t) FROM ThreadClass t " +
                     "WHERE t.isPublished = true AND t.isDeleted = false " +

@@ -15,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -33,21 +34,22 @@ public class FeedServiceImpl implements FeedService {
                 .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"));
 
         // 2. Extraemos las listas de IDs que el usuario sigue.
-        List<Long> followedUserIds = currentUser.getFollowing().stream()
-                .map(follow -> follow.getUserFollowed().getId())
-                .toList();
+        List<Long> followedUserIds = new ArrayList<>(
+                currentUser.getFollowing().stream()
+                        .map(follow -> follow.getUserFollowed().getId())
+                        .toList()
+        );
 
-        List<Long> followedCategoryIds = currentUser.getFollowedCategories().stream()
-                .map(categoryFollow -> categoryFollow.getCategory().getId())
-                .toList();
+        List<Long> followedCategoryIds = new ArrayList<>(
+                currentUser.getFollowedCategories().stream()
+                        .map(categoryFollow -> categoryFollow.getCategory().getId())
+                        .toList()
+        );
 
         if (followedUserIds.isEmpty() && followedCategoryIds.isEmpty()) {
             return Page.empty(pageable);
         }
 
-        // (Añadimos placeholders si alguna lista está vacía para que la consulta IN no falle)
-        if (followedUserIds.isEmpty()) { followedUserIds.add(-1L); }
-        if (followedCategoryIds.isEmpty()) { followedCategoryIds.add(-1L); }
 
         // 3. Obtenemos la PÁGINA de entidades 'ThreadClass' filtradas.
         Page<ThreadClass> threadPage = threadRepository.findFollowingFeed(
