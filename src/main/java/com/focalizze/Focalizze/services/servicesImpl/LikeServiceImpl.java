@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
@@ -41,9 +43,12 @@ public class LikeServiceImpl implements LikeService {
             // If the like already exists, we delete it (remove like).
             likeRepository.delete(existingLike.get());
             thread.setLikeCount(thread.getLikeCount() - 1);
-            // Actualizamos el contador de likes en la entidad del hilo.
-            // We update the like counter in the thread entity.
-            interactionLimitService.refundInteraction(currentUser, InteractionType.LIKE);
+            //    Comprobamos si el 'like' que estamos eliminando fue creado HOY.
+            LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+            if (existingLike.get().getCreatedAt().isAfter(startOfToday)) {
+                // Si fue creado hoy, entonces sí procedemos con el reembolso.
+                interactionLimitService.refundInteraction(currentUser,InteractionType.LIKE);
+            }
         } else {
             // Si el like no existe, lo creamos (dar like).
             // If the like does not exist, we create it (give like).
@@ -51,9 +56,13 @@ public class LikeServiceImpl implements LikeService {
             // Verificar si el usuario puede dar like.
             interactionLimitService.checkInteractionLimit(currentUser);
 
+            //fecha de creacion
+            LocalDateTime date = LocalDateTime.now();
+
             // Si puede, creamos el like.
             Like newLike = Like.builder()
                     .user(currentUser)
+                    .createdAt(date)
                     .thread(thread)
                     .build();
             likeRepository.save(newLike);

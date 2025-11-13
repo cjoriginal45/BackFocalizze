@@ -77,11 +77,13 @@ public class InteractionLimitServiceImpl implements InteractionLimitService {
     public void refundInteraction(User user, InteractionType type) {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
-        // Buscamos la interacción más reciente del tipo especificado que ocurrió hoy.
-        Optional<InteractionLog> logToRefund = interactionLogRepository
-                .findFirstByUserAndTypeAndCreatedAtAfterOrderByCreatedAtDesc(user, type, startOfToday);
+        if(type.equals(InteractionType.LIKE)) {
+            // Buscamos la interacción más reciente del tipo especificado que ocurrió hoy.
+            Optional<InteractionLog> logToRefund = interactionLogRepository
+                    .findFirstByUserAndTypeAndCreatedAtAfterOrderByCreatedAtDesc(user, type, startOfToday);
+            // Si encontramos un log para reembolsar, lo eliminamos.
+            logToRefund.ifPresent(interactionLogRepository::delete);
+        }
 
-        // Si encontramos un log para reembolsar, lo eliminamos.
-        logToRefund.ifPresent(interactionLogRepository::delete);
     }
 }
