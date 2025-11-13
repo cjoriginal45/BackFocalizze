@@ -31,6 +31,35 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
     Page<ThreadClass> findThreadsForFeed(Pageable pageable);
 
 
+
+    /**
+     * Obtiene una página de hilos para el feed "Siguiendo" de un usuario.
+     * La consulta selecciona hilos que cumplan una de estas condiciones:
+     * 1. El autor del hilo (t.user) está en la lista de usuarios que 'currentUser' sigue.
+     * 2. La categoría del hilo (t.category) está en la lista de categorías que 'currentUser' sigue.
+     *
+     * Además, filtra por hilos publicados y no borrados, y ordena por fecha de publicación.
+     *
+     * @param followedUserIds La lista de IDs de los usuarios que sigue el usuario actual.
+     * @param followedCategoryIds La lista de IDs de las categorías que sigue el usuario actual.
+     * @param pageable Objeto de paginación.
+     * @return Una página de entidades ThreadClass.
+     */
+    @Query(value = "SELECT t FROM ThreadClass t " +
+            "WHERE t.isPublished = true AND t.isDeleted = false " +
+            "AND (t.user.id IN (:followedUserIds) OR t.category.id IN (:followedCategoryIds)) " +
+            "ORDER BY t.publishedAt DESC",
+            countQuery = "SELECT count(t) FROM ThreadClass t " +
+                    "WHERE t.isPublished = true AND t.isDeleted = false " +
+                    "AND (t.user.id IN :followedUserIds OR t.category.id IN :followedCategoryIds)")
+    Page<ThreadClass> findFollowingFeed(
+            @Param("followedUserIds") List<Long> followedUserIds,
+            @Param("followedCategoryIds") List<Long> followedCategoryIds,
+            Pageable pageable
+    );
+
+
+
     @Query("SELECT t FROM ThreadClass t WHERE t.isPublished = true AND t.isDeleted = false AND EXISTS  " +
             "(SELECT 1 FROM t.posts p WHERE LOWER(p.content) LIKE LOWER(CONCAT('%', :query, '%')))")
     List<ThreadClass> findByPostContentContainingIgnoreCase(@Param("query") String query);
