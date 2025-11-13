@@ -17,6 +17,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Date;
+
 @Service
 @RequiredArgsConstructor
 public class CommentServiceImpl  implements CommentService {
@@ -44,8 +48,11 @@ public class CommentServiceImpl  implements CommentService {
         // Verificar si el usuario puede comentar.
         interactionLimitService.checkInteractionLimit(currentUser);
 
+        LocalDateTime date = LocalDateTime.now();
+
         CommentClass newComment = CommentClass.builder()
                 .content(commentRequestDto.content())
+                .createdAt(date)
                 .user(currentUser)
                 .thread(thread)
                 .build();

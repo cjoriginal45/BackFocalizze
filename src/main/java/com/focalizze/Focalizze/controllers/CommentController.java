@@ -35,6 +35,8 @@ public class CommentController {
             @Valid @RequestBody CommentRequestDto commentRequestDto) {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         CommentResponseDto createdComment = commentService.createComment(threadId, commentRequestDto, currentUser);
+        System.out.println("FECHA DE CREACION: "+createdComment.createdAt());
+        System.out.println("CONTENIDO: "+createdComment.content());
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
     }
 }
