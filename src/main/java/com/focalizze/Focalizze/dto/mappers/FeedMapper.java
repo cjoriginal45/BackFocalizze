@@ -34,8 +34,9 @@ public class FeedMapper {
         StatsDto statsDto = new StatsDto(
                 thread.getLikeCount(),
                 thread.getCommentCount(),
-                thread.getSaveCount(),
-                thread.getViewCount()
+                thread.getViewCount(),
+                thread.getSaveCount()
+
         );
 
         String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
