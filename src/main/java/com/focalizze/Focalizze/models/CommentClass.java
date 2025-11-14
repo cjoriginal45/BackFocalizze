@@ -34,4 +34,7 @@ public class CommentClass {
     @ManyToOne
     @JoinColumn(name="thread_id")
     private ThreadClass thread;
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false; // Valor por defecto es 'false'
 }
