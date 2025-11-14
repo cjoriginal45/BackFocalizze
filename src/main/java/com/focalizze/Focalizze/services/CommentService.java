@@ -7,6 +7,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface CommentService {
+
     Page<CommentResponseDto> getCommentsByThread(Long threadId, Pageable pageable);
+
     CommentResponseDto createComment(Long threadId, CommentRequestDto commentRequestDto, User currentUser);
+
+    void deleteComment(Long commentId, User currentUser);
 }

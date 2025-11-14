@@ -48,7 +48,8 @@ public class SecurityConfig {
                                 "/api/profiles/**",
                                 "/api/thread/**",
                                 "/api/categories",
-                                "/api/search/**"
+                                "/api/search/**",
+                                "/api/threads/*/comments"
                         ).permitAll()
 
                         // --- BLOQUE 2: RUTAS CON AUTENTICACIÓN ---
@@ -61,6 +62,7 @@ public class SecurityConfig {
                         //   - POST, PATCH, DELETE a /api/thread/**
                         //   - POST a /api/users/{username}/follow
                         //   - Y cualquier otro endpoint que crees en el futuro.
+                        .requestMatchers("/api/comments/**").authenticated()
                         .anyRequest().authenticated()
                 )
 
