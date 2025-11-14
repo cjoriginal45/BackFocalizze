@@ -35,7 +35,7 @@ public class CommentServiceImpl  implements CommentService {
         ThreadClass thread = threadRepository.findById(threadId)
                 .orElseThrow(() -> new RuntimeException("Thread no encontrado"));
 
-        Page<CommentClass> comments = commentRepository.findAllByThreadOrderByCreatedAtAsc(thread, pageable);
+        Page<CommentClass> comments = commentRepository.findActiveCommentsByThread(thread, pageable);
         return comments.map(commentMapper::toCommentResponseDto);
     }
 
@@ -67,5 +67,30 @@ public class CommentServiceImpl  implements CommentService {
         threadRepository.save(thread);
 
         return commentMapper.toCommentResponseDto(savedComment);
+    }
+
+    @Override
+    @Transactional
+    public void deleteComment(Long commentId, User currentUser) {
+        // 1. Verificar que el comentario existe Y que pertenece al usuario actual.
+        CommentClass commentToDelete = commentRepository.findByIdAndUser(commentId, currentUser)
+                .orElseThrow(() -> new RuntimeException("Comentario no encontrado o no tienes permiso para eliminarlo. ID: " + commentId));
+
+        // 2. Obtener el hilo asociado.
+        ThreadClass thread = commentToDelete.getThread();
+
+        // 3. CAMBIO: Marcar como eliminado en lugar de borrar.
+        commentToDelete.setDeleted(true);
+        commentRepository.save(commentToDelete);
+
+        // 4. Actualizar el contador de comentarios en el hilo.
+        thread.setCommentCount(Math.max(0, thread.getCommentCount() - 1));
+        threadRepository.save(thread);
+
+        // 5. Lógica de "reembolso" de interacción.
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        if (commentToDelete.getCreatedAt().isAfter(startOfToday)) {
+            interactionLimitService.refundInteraction(currentUser, InteractionType.COMMENT);
+        }
     }
 }
