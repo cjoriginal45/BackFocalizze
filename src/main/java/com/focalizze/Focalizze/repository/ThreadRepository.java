@@ -99,4 +99,15 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     @Query("SELECT t FROM ThreadClass t WHERE t.isPublished = false AND t.scheduledTime <= :currentTime")
     List<ThreadClass> findThreadsToPublish(@Param("currentTime") LocalDateTime currentTime);
+
+    /**
+     * Busca una PÁGINA de hilos que pertenecen a una categoría específica.
+     * La consulta también filtra por hilos que están publicados y no eliminados lógicamente.
+     * Spring Data JPA generará automáticamente la consulta SQL necesaria, incluyendo la paginación.
+     *
+     * @param category La entidad de la categoría por la cual filtrar.
+     * @param pageable El objeto que contiene la información de paginación (número de página, tamaño).
+     * @return Una Page<ThreadClass> con los hilos encontrados y la información de paginación.
+     */
+    Page<ThreadClass> findByCategoryAndIsPublishedTrueAndIsDeletedFalse(CategoryClass category, Pageable pageable);
 }
