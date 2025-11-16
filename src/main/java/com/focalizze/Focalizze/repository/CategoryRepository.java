@@ -19,4 +19,6 @@ public interface CategoryRepository extends JpaRepository<CategoryClass,Long> {
     @Modifying
     @Query("UPDATE CategoryClass c SET c.followersCount = c.followersCount - 1 WHERE c.id = :categoryId")
     void decrementFollowersCount(@Param("categoryId") Long categoryId);
+
+    Optional<CategoryClass> findByNameIgnoreCase(String name);
 }
