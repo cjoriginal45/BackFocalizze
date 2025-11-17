@@ -1,10 +1,12 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
 import com.focalizze.Focalizze.models.Follow;
+import com.focalizze.Focalizze.models.NotificationType;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.FollowService;
+import com.focalizze.Focalizze.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ public class FollowServiceImpl implements FollowService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -54,6 +57,10 @@ public class FollowServiceImpl implements FollowService {
             // Actualizamos los contadores de forma atómica.
             userRepository.incrementFollowingCount(currentUser.getId());
             userRepository.incrementFollowersCount(userToFollow.getId());
+
+            // --- ENVIAR NOTIFICACIÓN ---
+            String message = currentUser.getDisplayName() + " ha comenzado a seguirte.";
+            notificationService.createAndSendNotification(userToFollow, NotificationType.NEW_FOLLOWER, message, null);
         }
     }
 }

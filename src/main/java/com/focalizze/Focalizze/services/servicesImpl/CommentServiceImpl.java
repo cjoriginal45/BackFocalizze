@@ -3,14 +3,12 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.dto.CommentRequestDto;
 import com.focalizze.Focalizze.dto.CommentResponseDto;
 import com.focalizze.Focalizze.dto.mappers.CommentMapper;
-import com.focalizze.Focalizze.models.CommentClass;
-import com.focalizze.Focalizze.models.InteractionType;
-import com.focalizze.Focalizze.models.ThreadClass;
-import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.models.*;
 import com.focalizze.Focalizze.repository.CommentRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.services.CommentService;
 import com.focalizze.Focalizze.services.InteractionLimitService;
+import com.focalizze.Focalizze.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -28,6 +26,7 @@ public class CommentServiceImpl  implements CommentService {
     private final CommentRepository commentRepository;
     private final CommentMapper commentMapper;
     private final InteractionLimitService interactionLimitService;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional(readOnly = true)
@@ -63,6 +62,11 @@ public class CommentServiceImpl  implements CommentService {
 
         // Registramos la interacción DESPUÉS de guardar el comentario.
         interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
+
+        if (!thread.getUser().getId().equals(currentUser.getId())) {
+            String message = currentUser.getDisplayName() + " ha comentado en tu hilo.";
+            notificationService.createAndSendNotification(thread.getUser(), NotificationType.NEW_COMMENT, message, thread);
+        }
 
         threadRepository.save(thread);
 
