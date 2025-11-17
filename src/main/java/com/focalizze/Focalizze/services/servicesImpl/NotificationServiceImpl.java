@@ -9,8 +9,11 @@ import com.focalizze.Focalizze.repository.NotificationRepository;
 import com.focalizze.Focalizze.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -49,5 +52,15 @@ public class NotificationServiceImpl implements NotificationService {
                 "/queue/notifications",
                 dto
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NotificationDto> getNotificationsForUser(User user, Pageable pageable) {
+        // 1. Buscamos la página de entidades en la base de datos.
+        Page<NotificationClass> notificationPage = notificationRepository.findByUserOrderByCreatedAtDesc(user, pageable);
+
+        // 2. Usamos el método 'map' de la página para convertir cada entidad a su DTO.
+        return notificationPage.map(NotificationDto::new); // Usa el constructor del record/DTO
     }
 }
