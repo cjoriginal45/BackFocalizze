@@ -73,8 +73,12 @@ public class LikeServiceImpl implements LikeService {
             interactionLimitService.recordInteraction(currentUser, InteractionType.LIKE);
 
             if (!thread.getUser().getId().equals(currentUser.getId())) {
-                String message = currentUser.getDisplayName() + " le ha gustado tu hilo.";
-                notificationService.createAndSendNotification(thread.getUser(), NotificationType.NEW_LIKE, message, thread);
+                notificationService.createAndSendNotification(
+                        thread.getUser(),
+                        NotificationType.NEW_LIKE,
+                        currentUser,
+                        thread
+                );
             }
         }
 

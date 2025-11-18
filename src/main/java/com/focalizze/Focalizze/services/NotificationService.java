@@ -9,7 +9,7 @@ import org.springframework.data.domain.Pageable;
 
 public interface NotificationService {
 
-    void createAndSendNotification(User userToNotify, NotificationType type, String message, ThreadClass thread);
+    void createAndSendNotification(User userToNotify, NotificationType type, User triggerUser, ThreadClass thread);
 
     Page<NotificationDto> getNotificationsForUser(User user, Pageable pageable);
 }

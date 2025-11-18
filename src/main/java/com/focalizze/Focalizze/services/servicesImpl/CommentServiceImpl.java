@@ -64,8 +64,12 @@ public class CommentServiceImpl  implements CommentService {
         interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
 
         if (!thread.getUser().getId().equals(currentUser.getId())) {
-            String message = currentUser.getDisplayName() + " ha comentado en tu hilo.";
-            notificationService.createAndSendNotification(thread.getUser(), NotificationType.NEW_COMMENT, message, thread);
+            notificationService.createAndSendNotification(
+                    thread.getUser(),
+                    NotificationType.NEW_COMMENT,
+                    currentUser,
+                    thread
+            );
         }
 
         threadRepository.save(thread);

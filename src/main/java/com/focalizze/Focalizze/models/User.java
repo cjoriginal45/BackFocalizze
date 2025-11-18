@@ -60,6 +60,9 @@ public class User implements UserDetails {
     @OneToMany(mappedBy="user")
     private List<NotificationClass> notifications;
 
+    @OneToMany(mappedBy="triggerUser")
+    private List<NotificationClass> notificationsTrigger;
+
     @OneToMany(mappedBy="user")
     private List<CommentClass> comments;
 

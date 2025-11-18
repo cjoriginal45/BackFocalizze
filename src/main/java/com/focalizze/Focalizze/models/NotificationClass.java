@@ -34,6 +34,10 @@ public class NotificationClass {
     private User user;
 
     @ManyToOne
+    @JoinColumn(name = "trigger_user_id")
+    private User triggerUser;
+
+    @ManyToOne
     @JoinColumn(name="thread_id")
     private ThreadClass thread;
 }

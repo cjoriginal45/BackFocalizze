@@ -59,8 +59,12 @@ public class FollowServiceImpl implements FollowService {
             userRepository.incrementFollowersCount(userToFollow.getId());
 
             // --- ENVIAR NOTIFICACIÓN ---
-            String message = currentUser.getDisplayName() + " ha comenzado a seguirte.";
-            notificationService.createAndSendNotification(userToFollow, NotificationType.NEW_FOLLOWER, message, null);
+            notificationService.createAndSendNotification(
+                    userToFollow,
+                    NotificationType.NEW_FOLLOWER,
+                    currentUser,
+                    null
+            );
         }
     }
 }

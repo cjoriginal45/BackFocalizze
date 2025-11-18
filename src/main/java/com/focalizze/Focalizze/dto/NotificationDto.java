@@ -10,10 +10,10 @@ public record NotificationDto(
         String message,
         boolean isRead,
         LocalDateTime createdAt,
-        Long threadId
+        Long threadId, // ID del hilo relacionado
+        String threadPreview, // Un extracto del primer post del hilo
+        NotificationTriggerUserDto triggerUser // El usuario que causó la notificación
 // Puedes añadir más datos aquí, como el avatar del usuario que generó la notificación
 ) {
-    public NotificationDto(NotificationClass n) {
-        this(n.getId(), n.getType().name(), n.getMessage(), n.isRead(), n.getCreatedAt(), (n.getThread() != null) ? n.getThread().getId() : null);
-    }
+
 }
