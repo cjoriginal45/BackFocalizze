@@ -1,14 +1,12 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
-import com.focalizze.Focalizze.models.InteractionType;
-import com.focalizze.Focalizze.models.Like;
-import com.focalizze.Focalizze.models.ThreadClass;
-import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.models.*;
 import com.focalizze.Focalizze.repository.InteractionLogRepository;
 import com.focalizze.Focalizze.repository.LikeRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.services.InteractionLimitService;
 import com.focalizze.Focalizze.services.LikeService;
+import com.focalizze.Focalizze.services.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +23,7 @@ public class LikeServiceImpl implements LikeService {
     private final LikeRepository likeRepository;
     private final InteractionLimitService interactionLimitService;
     private final InteractionLogRepository interactionLogRepository;
+    private final NotificationService notificationService;
 
     @Override
     @Transactional
@@ -72,6 +71,15 @@ public class LikeServiceImpl implements LikeService {
 
             // Registramos la interacción.
             interactionLimitService.recordInteraction(currentUser, InteractionType.LIKE);
+
+            if (!thread.getUser().getId().equals(currentUser.getId())) {
+                notificationService.createAndSendNotification(
+                        thread.getUser(),
+                        NotificationType.NEW_LIKE,
+                        currentUser,
+                        thread
+                );
+            }
         }
 
         // Guardamos la entidad del hilo con el contador actualizado.
