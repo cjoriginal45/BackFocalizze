@@ -34,9 +34,6 @@ public class CategoryClass {
     @OneToMany(mappedBy="category")
     private List<ThreadClass> threads;
 
-    @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.category_id = id AND t.is_published = true AND t.is_deleted = false)")
-    private Integer threadsCount;
-
     @Builder.Default
     private Integer followersCount = 0;
 

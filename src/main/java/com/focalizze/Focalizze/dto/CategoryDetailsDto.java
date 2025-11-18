@@ -6,6 +6,6 @@ public record CategoryDetailsDto(
         String description,
         String imageUrl,
         Integer followersCount,
-        Integer threadsCount,
+        Long threadsCount,
         boolean isFollowing) {
 }

@@ -68,36 +68,30 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public CategoryDetailsDto getCategoryDetails(String name) {
-        CategoryClass category = categoryRepository.findByNameIgnoreCase(name)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
-
+        Long currentUserId = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean isFollowed = false;
 
+        // Obtenemos el ID del usuario actual, si está autenticado
         if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
-            isFollowed = authenticatedUser.getFollowedCategories().stream()
-                    .anyMatch(cf -> cf.getCategory().getId().equals(category.getId()));
+            currentUserId = authenticatedUser.getId();
         }
 
-        return new CategoryDetailsDto(
-                category.getId(),
-                category.getName(),
-                category.getDescription(),
-                category.getImageUrl(),
-                category.getFollowersCount(),
-                category.getThreadsCount(),
-                isFollowed
-        );
+        // Llamamos al nuevo método del repositorio, que hace todo el trabajo.
+        return categoryRepository.findCategoryDetailsByName(name, currentUserId)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getThreadsByCategory(String name, Pageable pageable) {
-        CategoryClass category = categoryRepository.findByNameIgnoreCase(name)
-                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
+        // --- YA NO NECESITAMOS BUSCAR LA CATEGORÍA AQUÍ ---
+        // CategoryClass category = categoryRepository.findByNameIgnoreCase(name)
+        //         .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
 
-        Page<ThreadClass> threadPage = threadRepository.findByCategoryAndIsPublishedTrueAndIsDeletedFalse(category, pageable);
+        // --- LLAMAMOS AL NUEVO MÉTODO DEL THREAD REPOSITORY ---
+        Page<ThreadClass> threadPage = threadRepository.findPublishedThreadsByCategoryName(name, pageable);
 
+        // El resto del método para enriquecer los hilos no cambia
         User currentUser = null;
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
