@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Formula;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -25,12 +26,13 @@ public class CategoryClass {
 
     private String description;
 
+    private String imageUrl;
+
     @OneToMany(mappedBy = "category", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<CategoryFollow> followers;
 
     @OneToMany(mappedBy="category")
     private List<ThreadClass> threads;
-
 
     @Builder.Default
     private Integer followersCount = 0;

@@ -47,7 +47,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/profiles/**",
                                 "/api/thread/**",
-                                "/api/categories",
+                                "/api/categories/**",
                                 "/api/search/**",
                                 "/api/threads/*/comments"
                         ).permitAll()
@@ -75,6 +75,7 @@ public class SecurityConfig {
 
         return http.build();
     }
+
 
     // Bean para configurar CORS. Reemplaza tu clase WebConfig.
     @Bean

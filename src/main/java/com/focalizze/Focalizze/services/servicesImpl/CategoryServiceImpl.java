@@ -1,15 +1,24 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.CategoryDetailsDto;
 import com.focalizze.Focalizze.dto.CategoryDto;
+import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.CategoryClass;
+import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.CategoryRepository;
+import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.CategoryService;
+import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,6 +31,8 @@ public class CategoryServiceImpl implements CategoryService {
 
     private final CategoryRepository categoryRepository;
     private final UserRepository userRepository;
+    private final ThreadRepository threadRepository;
+    private final ThreadEnricher threadEnricher;
 
 
     @Override
@@ -53,5 +64,41 @@ public class CategoryServiceImpl implements CategoryService {
                 category.getFollowersCount(),
                 finalFollowedCategoryIds.contains(category.getId())
         )).collect(Collectors.toList());
+    }
+
+    @Override
+    public CategoryDetailsDto getCategoryDetails(String name) {
+        Long currentUserId = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Obtenemos el ID del usuario actual, si está autenticado
+        if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
+            currentUserId = authenticatedUser.getId();
+        }
+
+        // Llamamos al nuevo método del repositorio, que hace todo el trabajo.
+        return categoryRepository.findCategoryDetailsByName(name, currentUserId)
+                .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FeedThreadDto> getThreadsByCategory(String name, Pageable pageable) {
+        // --- YA NO NECESITAMOS BUSCAR LA CATEGORÍA AQUÍ ---
+        // CategoryClass category = categoryRepository.findByNameIgnoreCase(name)
+        //         .orElseThrow(() -> new RuntimeException("Categoría no encontrada: " + name));
+
+        // --- LLAMAMOS AL NUEVO MÉTODO DEL THREAD REPOSITORY ---
+        Page<ThreadClass> threadPage = threadRepository.findPublishedThreadsByCategoryName(name, pageable);
+
+        // El resto del método para enriquecer los hilos no cambia
+        User currentUser = null;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
+            currentUser = authenticatedUser;
+        }
+
+        List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(threadPage.getContent(), currentUser);
+        return new PageImpl<>(enrichedDtoList, pageable, threadPage.getTotalElements());
     }
 }
