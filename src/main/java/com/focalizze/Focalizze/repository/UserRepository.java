@@ -6,8 +6,10 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
@@ -43,4 +45,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Modifying
     @Query("UPDATE User u SET u.followersCount = u.followersCount - 1 WHERE u.id = :userId")
     void decrementFollowersCount(@Param("userId") Long userId);
+
+    List<User> findAllByUsernameIn(Collection<String> usernames);
 }
