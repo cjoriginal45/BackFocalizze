@@ -5,10 +5,14 @@ import com.focalizze.Focalizze.dto.ThreadResponseDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.CommentClass;
 import com.focalizze.Focalizze.models.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CommentMapper {
+
+    @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
+    private String defaultAvatarUrl;
     /**
      * Convierte una entidad CommentClass a un DTO de respuesta para la API.
      * @param comment La entidad del comentario obtenida de la base de datos.
@@ -60,7 +64,7 @@ public class CommentMapper {
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
-                user.getAvatarUrl(),
+                user.getAvatarUrl(defaultAvatarUrl),
                 false,
                 user.getFollowingCount(),
                 user.getFollowersCount()

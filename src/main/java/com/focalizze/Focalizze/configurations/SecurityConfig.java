@@ -40,7 +40,10 @@ public class SecurityConfig {
 
                         // --- BLOQUE 1: RUTAS PÚBLICAS (ACCESO SIN LOGIN) ---
                         // Se permite el acceso a todos los endpoints de autenticación y registro.
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/images/**",
+                                "/api/profiles/avatars/**" ).permitAll()
 
                         // Se permite la LECTURA (GET) de contenido público.
                         // Esto incluye ver perfiles, avatares, hilos individuales, categorías, y resultados de búsqueda.

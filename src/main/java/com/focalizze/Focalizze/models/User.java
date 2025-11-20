@@ -5,7 +5,7 @@ import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
+import org.springframework.beans.factory.annotation.Value;
 import java.time.LocalDateTime;
 import java.util.*;
 
@@ -37,6 +37,20 @@ public class User implements UserDetails {
     private String biography;
 
     private String avatarUrl;
+
+    /**
+     * Este método devuelve la URL del avatar del usuario.
+     * Si el usuario no ha subido un avatar (avatarUrl es null),
+     * devuelve la URL del avatar por defecto definida en la configuración.
+     * @param defaultUrl La URL por defecto inyectada desde application.properties.
+     * @return Una URL de avatar válida.
+     */
+    public String getAvatarUrl(String defaultUrl) {
+        if (this.avatarUrl == null || this.avatarUrl.isBlank()) {
+            return defaultUrl;
+        }
+        return this.avatarUrl;
+    }
 
     private Integer dailyThreadsRemaining;
 

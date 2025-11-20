@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.dto.mappers;
 
 import com.focalizze.Focalizze.dto.RegisterResponse;
 import com.focalizze.Focalizze.models.User;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component

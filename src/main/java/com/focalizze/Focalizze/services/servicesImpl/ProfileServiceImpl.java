@@ -12,6 +12,7 @@ import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.core.Authentication;
@@ -34,6 +35,9 @@ public class ProfileServiceImpl implements ProfileService {
     private final FileStorageService fileStorageService;
     private final ThreadEnricher threadEnricher;
     private static final int DAILY_THREAD_LIMIT = 3;
+
+    @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
+    private String defaultAvatarUrl;
 
     @Override
     @Transactional(readOnly = true)
@@ -80,7 +84,7 @@ public class ProfileServiceImpl implements ProfileService {
                 profileUser.getId(),
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
-                profileUser.getAvatarUrl(),
+                profileUser.getAvatarUrl(defaultAvatarUrl),
                 profileUser.getBiography(),
                 (int) followersCount,
                 (int) followingCount,
