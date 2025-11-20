@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,9 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+
+    @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
+    private String defaultAvatarUrl;
 
     @Override
     public Optional<User> findUserByUserName(String username) {
@@ -66,7 +70,7 @@ public class UserServiceImpl implements UserService {
                 profileUser.getId(),
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
-                profileUser.getAvatarUrl(),
+                profileUser.getAvatarUrl(defaultAvatarUrl),
                 isFollowing,
                 profileUser.getFollowingCount(),
                 profileUser.getFollowersCount()
@@ -82,7 +86,7 @@ public class UserServiceImpl implements UserService {
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
-                user.getAvatarUrl(),
+                user.getAvatarUrl(defaultAvatarUrl),
                 false,
                 user.getFollowingCount(),
                 user.getFollowersCount()

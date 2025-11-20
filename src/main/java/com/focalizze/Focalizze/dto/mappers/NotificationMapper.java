@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.dto.NotificationTriggerUserDto;
 import com.focalizze.Focalizze.models.NotificationClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.models.Post;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -12,6 +13,9 @@ import java.util.Comparator;
 @Component
 public class NotificationMapper {
     private static final int THREAD_PREVIEW_LENGTH = 100;
+
+    @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
+    private String defaultAvatarUrl;
 
     public NotificationDto toDto(NotificationClass notification) {
         if (notification == null) {
@@ -26,7 +30,7 @@ public class NotificationMapper {
             triggerUserDto = new NotificationTriggerUserDto(
                     triggerUser.getUsername(),
                     triggerUser.getDisplayName(),
-                    triggerUser.getAvatarUrl()
+                    triggerUser.getAvatarUrl(defaultAvatarUrl)
             );
         }
 
