@@ -101,6 +101,9 @@ public class User implements UserDetails {
     @OneToMany(mappedBy="userFollowed")
     private List<Follow> followers;
 
+    @OneToMany(mappedBy = "mentionedUser")
+    private List<Mention> mentions;
+
     public User(){
         this.savedThreads = new ArrayList<>();
         this.comments = new ArrayList<>();
@@ -113,6 +116,7 @@ public class User implements UserDetails {
         this.reportsReceived = new ArrayList<>();
         this.interactions = new ArrayList<>();
         this.followedCategories = new HashSet<>();
+        this.mentions = new ArrayList<>();
     }
 
 

@@ -15,6 +15,7 @@ import com.focalizze.Focalizze.repository.CategoryRepository;
 import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
+import com.focalizze.Focalizze.services.MentionService;
 import com.focalizze.Focalizze.services.ThreadService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -38,7 +39,7 @@ public class ThreadServiceImpl implements ThreadService {
     private final ThreadMapper threadMapper;
     private final FeedMapper feedMapper;
     private final SavedThreadRepository savedThreadRepository;
-
+    private final MentionService mentionService;
     private static final int DAILY_THREAD_LIMIT = 3;
 
 
@@ -125,6 +126,11 @@ public class ThreadServiceImpl implements ThreadService {
         // Save the thread to the database
         // Thanks to `cascade = CascadeType.ALL`, when saving the thread, the messages will be saved automatically.
         ThreadClass savedThread = threadRepository.save(newThread);
+
+        //procesar menciones
+        for (Post post : savedThread.getPosts()) {
+            mentionService.processMentions(post, currentUser);
+        }
 
 
         // Mapear la entidad guardada a un DTO de respuesta y devolverlo
@@ -213,6 +219,11 @@ public class ThreadServiceImpl implements ThreadService {
         }
 
         ThreadClass threadSaved = threadRepository.save(thread);
+
+        //menciones
+        for (Post post : thread.getPosts()) {
+            mentionService.processMentions(post, currentUser);
+        }
 
         // Devolvemos el hilo actualizado.
         return threadMapper.mapToResponseDto(threadSaved);
