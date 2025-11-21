@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -112,4 +113,6 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE lower(t.category.name) = lower(:categoryName) " +
             "AND t.isPublished = true AND t.isDeleted = false")
     Page<ThreadClass> findPublishedThreadsByCategoryName(@Param("categoryName") String categoryName, Pageable pageable);
+
+    List<ThreadClass> findRecommendationCandidates(Long id, List<Long> followedUserIds, List<Long> followedCategoryIds, PageRequest of);
 }

@@ -47,4 +47,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
     void decrementFollowersCount(@Param("userId") Long userId);
 
     List<User> findAllByUsernameIn(Collection<String> usernames);
+
+    Optional<User> findByIdWithFollows(Long id);
 }
