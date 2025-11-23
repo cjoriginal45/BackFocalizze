@@ -6,7 +6,6 @@ import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.DiscoverFeedService;
 import com.focalizze.Focalizze.services.FeedService;
 import com.focalizze.Focalizze.services.FeedbackService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
