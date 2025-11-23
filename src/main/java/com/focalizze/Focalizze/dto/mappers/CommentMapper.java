@@ -65,6 +65,7 @@ public class CommentMapper {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(defaultAvatarUrl),
+                user.getCalculatedThreadCount(),
                 false,
                 user.getFollowingCount(),
                 user.getFollowersCount()

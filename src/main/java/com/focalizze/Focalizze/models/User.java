@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.Formula;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -37,6 +38,9 @@ public class User implements UserDetails {
     private String biography;
 
     private String avatarUrl;
+
+    @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
+    private Integer calculatedThreadCount;
 
     /**
      * Este método devuelve la URL del avatar del usuario.
