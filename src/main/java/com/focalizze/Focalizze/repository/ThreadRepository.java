@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -112,4 +113,40 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE lower(t.category.name) = lower(:categoryName) " +
             "AND t.isPublished = true AND t.isDeleted = false")
     Page<ThreadClass> findPublishedThreadsByCategoryName(@Param("categoryName") String categoryName, Pageable pageable);
+
+    /**
+     * Busca hilos candidatos para recomendación.
+     * Excluye: propios, de seguidos, y AHORA TAMBIÉN LOS OCULTOS.
+     */
+    @Query("SELECT DISTINCT t FROM ThreadClass t " +
+            "LEFT JOIN t.likes l " +
+            "WHERE t.isPublished = true AND t.isDeleted = false " +
+            "AND t.user.id != :currentUserId " +
+            "AND t.user.id NOT IN :followedUserIds " +
+
+            // --- NUEVA LÍNEA: Excluir hilos ocultos ---
+            "AND t.id NOT IN :hiddenThreadIds " +
+
+            "AND (" +
+            "    t.category.id IN :followedCategoryIds " +
+            "    OR l.user.id IN :followedUserIds" +
+            ") " +
+            "ORDER BY t.publishedAt DESC")
+    List<ThreadClass> findRecommendationCandidates(
+            @Param("currentUserId") Long currentUserId,
+            @Param("followedUserIds") List<Long> followedUserIds,
+            @Param("followedCategoryIds") List<Long> followedCategoryIds,
+            @Param("hiddenThreadIds") List<Long> hiddenThreadIds,
+            Pageable pageable);
+
+    @Query("SELECT t FROM ThreadClass t " +
+            "WHERE t.isPublished = true AND t.isDeleted = false " +
+            "AND t.user.id != :currentUserId " +
+            "AND t.user.id NOT IN :followedUserIds " +
+            "ORDER BY t.publishedAt DESC")
+    Page<ThreadClass> findThreadsForDiscover(
+            @Param("currentUserId") Long currentUserId,
+            @Param("followedUserIds") List<Long> followedUserIds,
+            Pageable pageable
+    );
 }
