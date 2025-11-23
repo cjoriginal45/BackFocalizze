@@ -71,7 +71,7 @@ public class UserServiceImpl implements UserService {
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
                 profileUser.getAvatarUrl(defaultAvatarUrl),
-                isFollowing,
+                profileUser.getCalculatedThreadCount(), isFollowing,
                 profileUser.getFollowingCount(),
                 profileUser.getFollowersCount()
         );
@@ -87,7 +87,7 @@ public class UserServiceImpl implements UserService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getAvatarUrl(defaultAvatarUrl),
-                false,
+                user.getCalculatedThreadCount(), false,
                 user.getFollowingCount(),
                 user.getFollowersCount()
         );

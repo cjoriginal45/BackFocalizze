@@ -96,7 +96,7 @@ public class ThreadEnricher {
                     baseDto.user().username(),
                     baseDto.user().displayName(),
                     baseDto.user().avatarUrl(),
-                    isFollowing,
+                    baseDto.user().calculatedThreadCount(), isFollowing,
                     baseDto.user().followingCount(),
                     baseDto.user().followersCount()
             );

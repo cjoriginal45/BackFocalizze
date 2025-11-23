@@ -25,7 +25,7 @@ public class FeedMapper {
                 thread.getUser().getUsername(),
                 thread.getUser().getDisplayName(),
                 thread.getUser().getAvatarUrl(defaultAvatarUrl),
-                false,
+                thread.getUser().getCalculatedThreadCount(), false,
                 thread.getUser().getFollowingCount(),
                 thread.getUser().getFollowersCount()
         );

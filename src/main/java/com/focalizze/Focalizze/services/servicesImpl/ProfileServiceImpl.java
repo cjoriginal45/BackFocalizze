@@ -88,7 +88,7 @@ public class ProfileServiceImpl implements ProfileService {
                 profileUser.getBiography(),
                 (int) followersCount,
                 (int) followingCount,
-                (int) threadCount,
+                profileUser.getCalculatedThreadCount(),
                 threadsAvailableToday,
                 profileUser.getCreatedAt(),
                 isFollowing,
