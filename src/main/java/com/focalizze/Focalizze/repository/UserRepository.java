@@ -48,5 +48,18 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findAllByUsernameIn(Collection<String> usernames);
 
-    Optional<User> findByIdWithFollows(Long id);
+    // --- REEMPLAZA O AÑADE ESTE MÉTODO ---
+    /**
+     * Busca un usuario por su ID y carga ("fetches") de forma proactiva (eager)
+     * sus colecciones de 'following' y 'followedCategories' en la misma consulta.
+     * Esto previene la LazyInitializationException.
+     *
+     * @param id El ID del usuario a buscar.
+     * @return Un Optional que contiene el User con sus colecciones cargadas.
+     */
+    @Query("SELECT u FROM User u " +
+            "LEFT JOIN FETCH u.following " +
+            "LEFT JOIN FETCH u.followedCategories " +
+            "WHERE u.id = :id")
+    Optional<User> findByIdWithFollows(@Param("id") Long id);
 }

@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.ThreadRepository;
+import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.DiscoverFeedService;
 import com.focalizze.Focalizze.services.RecommendationService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
@@ -21,37 +22,53 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class DiscoverFeedServiceImpl implements DiscoverFeedService {
+
     private final ThreadRepository threadRepository;
     private final RecommendationService recommendationService;
     private final ThreadEnricher threadEnricher;
+    private final UserRepository userRepository;
 
-    private static final int INSERTION_RATE = 10; // 1 recomendado cada 10 normales
+    // Configuración: 1 recomendado cada 10 normales
+    private static final int INSERTION_RATE = 3;
 
     @Override
     @Transactional(readOnly = true)
     public Page<DiscoverItemDto> getDiscoverFeed(User currentUser, Pageable pageable) {
-        // 1. Obtenemos una página de hilos normales del feed público
-        Page<ThreadClass> normalThreadsPage = threadRepository.findThreadsForFeed(pageable);
-        List<FeedThreadDto> normalDtos = threadEnricher.enrichList(normalThreadsPage.getContent(), currentUser);
+        // 1. Obtener IDs de seguidos para excluirlos del feed "General"
+        // (Queremos descubrir cosas nuevas, no ver lo que ya seguimos)
+        User userWithFollows = userRepository.findByIdWithFollows(currentUser.getId()).orElse(currentUser);
+        List<Long> followedUserIds = userWithFollows.getFollowing().stream()
+                .map(f -> f.getUserFollowed().getId()).toList();
 
-        // 2. Calculamos cuántas recomendaciones necesitamos para esta página
-        int recommendationsNeeded = normalDtos.size() / INSERTION_RATE;
-        List<DiscoverItemDto> recommendedItems = recommendationService.getRecommendations(currentUser, recommendationsNeeded);
+        // 2. Obtener "Hilos Normales" (Base del Feed Discover)
+        // Estos tendrán isRecommended = false
+        Page<ThreadClass> normalPage = threadRepository.findThreadsForDiscover(
+                currentUser.getId(), followedUserIds, pageable
+        );
 
-        // 3. MEZCLAMOS ambas listas
+        List<FeedThreadDto> normalDtos = threadEnricher.enrichList(normalPage.getContent(), currentUser);
+
+        // 3. Calcular cuántas recomendaciones necesitamos (ahora serán más)
+        int recommendationsNeeded = (normalDtos.size() / INSERTION_RATE) + 2; // Pedimos un par extra por si acaso
+
+        // 4. Obtener recomendaciones (sigue igual)
+        List<DiscoverItemDto> recommendations = recommendationService.getRecommendations(currentUser, recommendationsNeeded);
+
+        // 5. MEZCLAR LAS LISTAS
         List<DiscoverItemDto> mixedFeed = new ArrayList<>();
-        int normalIndex = 0;
-        int recommendedIndex = 0;
+        int recIndex = 0;
 
         for (int i = 0; i < normalDtos.size(); i++) {
-            // Insertamos un recomendado en la posición 10, 20, 30, etc.
-            if ((i + 1) % (INSERTION_RATE + 1) == 0 && recommendedIndex < recommendedItems.size()) {
-                mixedFeed.add(recommendedItems.get(recommendedIndex++));
-            } else {
-                mixedFeed.add(new DiscoverItemDto(normalDtos.get(normalIndex++), false, null, null));
+            mixedFeed.add(new DiscoverItemDto(normalDtos.get(i), false, null, null));
+
+            // Insertamos una recomendación cada 'INSERTION_RATE' hilos normales
+            if ((i + 1) % INSERTION_RATE == 0 && recIndex < recommendations.size()) {
+                mixedFeed.add(recommendations.get(recIndex++));
             }
         }
 
-        return new PageImpl<>(mixedFeed, pageable, normalThreadsPage.getTotalElements());
+        // Si sobraron recomendaciones y la página no está llena, podrías agregarlas al final (opcional)
+
+        return new PageImpl<>(mixedFeed, pageable, normalPage.getTotalElements());
     }
 }

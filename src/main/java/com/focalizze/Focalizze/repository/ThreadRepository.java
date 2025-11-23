@@ -114,5 +114,45 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "AND t.isPublished = true AND t.isDeleted = false")
     Page<ThreadClass> findPublishedThreadsByCategoryName(@Param("categoryName") String categoryName, Pageable pageable);
 
-    List<ThreadClass> findRecommendationCandidates(Long id, List<Long> followedUserIds, List<Long> followedCategoryIds, PageRequest of);
+    /**
+     * Busca hilos candidatos para recomendación.
+     * Criterios:
+     * - No son del usuario actual.
+     * - No son de autores que el usuario ya sigue.
+     * - Pertenecen a categorías que el usuario sigue O han recibido 'likes' de usuarios que él sigue.
+     * - Están publicados y no borrados.
+     * - Se ordenan por fecha de publicación para obtener los más recientes.
+     *
+     * @param currentUserId El ID del usuario que recibe las recomendaciones.
+     * @param followedUserIds Lista de IDs de usuarios que el usuario actual sigue.
+     * @param followedCategoryIds Lista de IDs de categorías que el usuario actual sigue.
+     * @param pageable Limita la cantidad de candidatos a procesar.
+     * @return Una lista de hilos candidatos.
+     */
+    @Query("SELECT DISTINCT t FROM ThreadClass t " +
+            "LEFT JOIN t.likes l " +
+            "WHERE t.isPublished = true AND t.isDeleted = false " +
+            "AND t.user.id != :currentUserId " +
+            "AND t.user.id NOT IN :followedUserIds " +
+            "AND (" +
+            "    t.category.id IN :followedCategoryIds " +
+            "    OR l.user.id IN :followedUserIds" +
+            ") " +
+            "ORDER BY t.publishedAt DESC")
+    List<ThreadClass> findRecommendationCandidates(
+            @Param("currentUserId") Long currentUserId,
+            @Param("followedUserIds") List<Long> followedUserIds,
+            @Param("followedCategoryIds") List<Long> followedCategoryIds,
+            Pageable pageable);
+
+    @Query("SELECT t FROM ThreadClass t " +
+            "WHERE t.isPublished = true AND t.isDeleted = false " +
+            "AND t.user.id != :currentUserId " +
+            "AND t.user.id NOT IN :followedUserIds " +
+            "ORDER BY t.publishedAt DESC")
+    Page<ThreadClass> findThreadsForDiscover(
+            @Param("currentUserId") Long currentUserId,
+            @Param("followedUserIds") List<Long> followedUserIds,
+            Pageable pageable
+    );
 }

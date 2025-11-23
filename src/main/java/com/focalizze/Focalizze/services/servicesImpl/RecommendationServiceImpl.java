@@ -10,6 +10,7 @@ import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.RecommendationService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,52 +36,72 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Override
     @Transactional(readOnly = true)
     public List<DiscoverItemDto> getRecommendations(User currentUser, int limit) {
-        // 1. Obtener IDs de usuarios y categorías que el usuario actual sigue.
+        // 1. Obtener IDs (Tu código actual) ...
         User userWithFollows = userRepository.findByIdWithFollows(currentUser.getId()).orElse(currentUser);
         List<Long> followedUserIds = userWithFollows.getFollowing().stream()
-                .map(followRelationship -> followRelationship.getUserFollowed().getId())
-                .toList();
-        List<Long> followedCategoryIds = userWithFollows.getFollowedCategories().stream().map(cf -> cf.getCategory().getId()).toList();
+                .map(f -> f.getUserFollowed().getId()).toList();
+        List<Long> followedCategoryIds = userWithFollows.getFollowedCategories().stream()
+                .map(cf -> cf.getCategory().getId()).toList();
 
-        // 2. SELECCIÓN DE CANDIDATOS: Buscar hilos relevantes que no sean del propio usuario ni de gente que ya sigue.
+        // 2. Selección de Candidatos (Tu código actual) ...
         List<ThreadClass> candidates = threadRepository.findRecommendationCandidates(
-                currentUser.getId(),
-                followedUserIds,
-                followedCategoryIds,
-                PageRequest.of(0, 100) // Buscamos en un pool grande de candidatos recientes
+                currentUser.getId(), followedUserIds, followedCategoryIds, PageRequest.of(0, 100)
         );
 
-        // 3. SCORING Y RANKING: Calcular una puntuación para cada hilo candidato.
+        // 3. Scoring (Tu código actual) ...
         List<ScoredThread> scoredThreads = candidates.stream()
                 .map(this::calculateScore)
                 .sorted(Comparator.comparingDouble(ScoredThread::score).reversed())
                 .toList();
 
-        // 4. DIVERSIFICACIÓN Y RAZÓN: Seleccionar los mejores y evitar duplicados de autor.
+        // 4. Diversificación (Tu código actual) ...
         List<DiscoverItemDto> recommendations = new ArrayList<>();
         Set<Long> usedAuthors = new HashSet<>();
 
         for (ScoredThread scoredThread : scoredThreads) {
             if (recommendations.size() >= limit) break;
-
             ThreadClass thread = scoredThread.thread();
+
             if (!usedAuthors.contains(thread.getUser().getId())) {
                 usedAuthors.add(thread.getUser().getId());
 
-                // Determinamos la razón de la recomendación
-                String reason = "Basado en la popularidad y tus intereses."; // Razón por defecto
-                RecommendationReasonType type = RecommendationReasonType.CATEGORY_INTEREST;
+                // Lógica de Razón (Tu código actual)
+                String reason = "Basado en interacciones recientes de tu red.";
+                RecommendationReasonType type = RecommendationReasonType.SOCIAL_PROOF;
 
                 if (followedCategoryIds.contains(thread.getCategory().getId())) {
                     reason = "Porque sigues la categoría '" + thread.getCategory().getName() + "'.";
+                    type = RecommendationReasonType.CATEGORY_INTEREST;
                 }
 
-                // Enriquecemos el hilo para el usuario actual (isLiked, isSaved)
                 FeedThreadDto enrichedThread = threadEnricher.enrichList(List.of(thread), currentUser).get(0);
-
                 recommendations.add(new DiscoverItemDto(enrichedThread, true, reason, type.toString()));
             }
         }
+
+        // --- NUEVO: FALLBACK (PLAN B) ---
+        // Si no encontramos suficientes recomendaciones personalizadas, rellenamos con hilos populares.
+        if (recommendations.size() < limit) {
+            // Buscamos hilos que NO sean del usuario ni de sus seguidos (Globales)
+            Page<ThreadClass> fallbackThreads = threadRepository.findThreadsForDiscover(
+                    currentUser.getId(), followedUserIds, PageRequest.of(0, 10)
+            );
+
+            for (ThreadClass thread : fallbackThreads) {
+                if (recommendations.size() >= limit) break;
+                // Evitamos duplicados
+                boolean alreadyAdded = recommendations.stream().anyMatch(r -> r.thread().id().equals(thread.getId()));
+
+                if (!alreadyAdded && !usedAuthors.contains(thread.getUser().getId())) {
+                    FeedThreadDto enriched = threadEnricher.enrichList(List.of(thread), currentUser).get(0);
+                    recommendations.add(new DiscoverItemDto(
+                            enriched, true, "Tendencia en Focalizze.", "TRENDING"
+                    ));
+                }
+            }
+        }
+        // -------------------------------
+
         return recommendations;
     }
 
