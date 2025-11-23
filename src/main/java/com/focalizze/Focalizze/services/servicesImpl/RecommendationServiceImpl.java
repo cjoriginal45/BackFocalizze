@@ -7,6 +7,7 @@ import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
+import com.focalizze.Focalizze.services.FeedbackService;
 import com.focalizze.Focalizze.services.RecommendationService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import java.util.Comparator;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final ThreadRepository threadRepository;
     private final ThreadEnricher threadEnricher;
     private final UserRepository userRepository;
+    private final FeedbackService feedbackService;
 
     // Pesos para el algoritmo de scoring
     private static final double LIKE_WEIGHT = 0.5;
@@ -36,40 +39,66 @@ public class RecommendationServiceImpl implements RecommendationService {
     @Override
     @Transactional(readOnly = true)
     public List<DiscoverItemDto> getRecommendations(User currentUser, int limit) {
-        // 1. Obtener IDs (Tu código actual) ...
+        // 1. Obtener IDs de usuarios y categorías que el usuario actual sigue.
         User userWithFollows = userRepository.findByIdWithFollows(currentUser.getId()).orElse(currentUser);
-        List<Long> followedUserIds = userWithFollows.getFollowing().stream()
-                .map(f -> f.getUserFollowed().getId()).toList();
-        List<Long> followedCategoryIds = userWithFollows.getFollowedCategories().stream()
-                .map(cf -> cf.getCategory().getId()).toList();
 
-        // 2. Selección de Candidatos (Tu código actual) ...
+        List<Long> followedUserIds = userWithFollows.getFollowing().stream()
+                .map(f -> f.getUserFollowed().getId())
+                .collect(Collectors.toList()); // Usamos collect para que la lista sea mutable si es necesario
+
+        List<Long> followedCategoryIds = userWithFollows.getFollowedCategories().stream()
+                .map(cf -> cf.getCategory().getId())
+                .collect(Collectors.toList());
+
+        // --- NUEVO: OBTENER HILOS OCULTOS ---
+        List<Long> hiddenThreadIds = feedbackService.getHiddenThreadIds(currentUser);
+
+        // --- PROTECCIÓN CONTRA LISTAS VACÍAS ---
+        // JPA puede lanzar error si pasamos listas vacías a una cláusula IN o NOT IN.
+        // Agregamos un ID ficticio (-1) si están vacías para evitar el error SQL.
+        if (followedUserIds.isEmpty()) followedUserIds.add(-1L);
+        if (followedCategoryIds.isEmpty()) followedCategoryIds.add(-1L);
+        if (hiddenThreadIds.isEmpty()) hiddenThreadIds.add(-1L);
+
+        // 2. SELECCIÓN DE CANDIDATOS
+        // Ahora pasamos 'hiddenThreadIds' al repositorio.
         List<ThreadClass> candidates = threadRepository.findRecommendationCandidates(
-                currentUser.getId(), followedUserIds, followedCategoryIds, PageRequest.of(0, 100)
+                currentUser.getId(),
+                followedUserIds,
+                followedCategoryIds,
+                hiddenThreadIds,
+                PageRequest.of(0, 100)
         );
 
-        // 3. Scoring (Tu código actual) ...
+        // 3. SCORING Y RANKING
         List<ScoredThread> scoredThreads = candidates.stream()
                 .map(this::calculateScore)
                 .sorted(Comparator.comparingDouble(ScoredThread::score).reversed())
                 .toList();
 
-        // 4. Diversificación (Tu código actual) ...
+        // 4. DIVERSIFICACIÓN Y RAZÓN
         List<DiscoverItemDto> recommendations = new ArrayList<>();
         Set<Long> usedAuthors = new HashSet<>();
 
         for (ScoredThread scoredThread : scoredThreads) {
             if (recommendations.size() >= limit) break;
+
             ThreadClass thread = scoredThread.thread();
 
+            // Filtramos si ya usamos el autor
             if (!usedAuthors.contains(thread.getUser().getId())) {
                 usedAuthors.add(thread.getUser().getId());
 
-                // Lógica de Razón (Tu código actual)
-                String reason = "Basado en interacciones recientes de tu red.";
-                RecommendationReasonType type = RecommendationReasonType.SOCIAL_PROOF;
+                // Determinamos la razón
+                String reason = "Basado en la popularidad y tus intereses.";
+                RecommendationReasonType type = RecommendationReasonType.SOCIAL_PROOF; // Default
 
-                if (followedCategoryIds.contains(thread.getCategory().getId())) {
+                // Si la categoría del hilo está en mis seguidas
+                // Nota: Usamos contains original, cuidado con el -1 si lo agregaste arriba, pero aquí comparamos IDs reales
+                boolean followsCategory = userWithFollows.getFollowedCategories().stream()
+                        .anyMatch(cf -> cf.getCategory().getId().equals(thread.getCategory().getId()));
+
+                if (followsCategory) {
                     reason = "Porque sigues la categoría '" + thread.getCategory().getName() + "'.";
                     type = RecommendationReasonType.CATEGORY_INTEREST;
                 }
@@ -79,28 +108,34 @@ public class RecommendationServiceImpl implements RecommendationService {
             }
         }
 
-        // --- NUEVO: FALLBACK (PLAN B) ---
-        // Si no encontramos suficientes recomendaciones personalizadas, rellenamos con hilos populares.
+        // --- FALLBACK (PLAN B) ---
+        // Si faltan recomendaciones, rellenamos con hilos populares (excluyendo los ocultos)
         if (recommendations.size() < limit) {
-            // Buscamos hilos que NO sean del usuario ni de sus seguidos (Globales)
+            // Reutilizamos la lógica de búsqueda general, pero filtramos manualmente los ocultos aquí
+            // para no crear otro método complejo en el repositorio solo para el fallback.
             Page<ThreadClass> fallbackThreads = threadRepository.findThreadsForDiscover(
-                    currentUser.getId(), followedUserIds, PageRequest.of(0, 10)
+                    currentUser.getId(), followedUserIds, PageRequest.of(0, 20)
             );
 
             for (ThreadClass thread : fallbackThreads) {
                 if (recommendations.size() >= limit) break;
-                // Evitamos duplicados
+
+                // Verificamos que no esté oculto, que no sea propio y que no esté ya agregado
+                boolean isHidden = hiddenThreadIds.contains(thread.getId());
                 boolean alreadyAdded = recommendations.stream().anyMatch(r -> r.thread().id().equals(thread.getId()));
 
-                if (!alreadyAdded && !usedAuthors.contains(thread.getUser().getId())) {
+                if (!isHidden && !alreadyAdded && !thread.getUser().getId().equals(currentUser.getId())) {
                     FeedThreadDto enriched = threadEnricher.enrichList(List.of(thread), currentUser).get(0);
+
                     recommendations.add(new DiscoverItemDto(
-                            enriched, true, "Tendencia en Focalizze.", "TRENDING"
+                            enriched,
+                            true,
+                            "Tendencia en Focalizze.",
+                            "TRENDING"
                     ));
                 }
             }
         }
-        // -------------------------------
 
         return recommendations;
     }
@@ -110,15 +145,16 @@ public class RecommendationServiceImpl implements RecommendationService {
                 (thread.getCommentCount() * COMMENT_WEIGHT) +
                 (thread.getSaveCount() * SAVE_WEIGHT);
 
-        // Penalización por antigüedad (más antiguo, menor puntuación)
         long hoursOld = Duration.between(thread.getPublishedAt(), LocalDateTime.now()).toHours();
-        double recencyScore = Math.exp(-hoursOld * 0.01) * RECENCY_WEIGHT; // Decaimiento exponencial
+        // Evitamos números negativos o ceros extraños en logs recientes
+        hoursOld = Math.max(0, hoursOld);
+
+        double recencyScore = Math.exp(-hoursOld * 0.01) * RECENCY_WEIGHT;
 
         double finalScore = engagementScore * recencyScore;
         return new ScoredThread(thread, finalScore);
     }
 
-    // Record auxiliar para el scoring
     private record ScoredThread(ThreadClass thread, double score) {}
 }
 

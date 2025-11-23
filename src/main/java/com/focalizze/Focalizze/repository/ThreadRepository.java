@@ -116,24 +116,17 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
 
     /**
      * Busca hilos candidatos para recomendación.
-     * Criterios:
-     * - No son del usuario actual.
-     * - No son de autores que el usuario ya sigue.
-     * - Pertenecen a categorías que el usuario sigue O han recibido 'likes' de usuarios que él sigue.
-     * - Están publicados y no borrados.
-     * - Se ordenan por fecha de publicación para obtener los más recientes.
-     *
-     * @param currentUserId El ID del usuario que recibe las recomendaciones.
-     * @param followedUserIds Lista de IDs de usuarios que el usuario actual sigue.
-     * @param followedCategoryIds Lista de IDs de categorías que el usuario actual sigue.
-     * @param pageable Limita la cantidad de candidatos a procesar.
-     * @return Una lista de hilos candidatos.
+     * Excluye: propios, de seguidos, y AHORA TAMBIÉN LOS OCULTOS.
      */
     @Query("SELECT DISTINCT t FROM ThreadClass t " +
             "LEFT JOIN t.likes l " +
             "WHERE t.isPublished = true AND t.isDeleted = false " +
             "AND t.user.id != :currentUserId " +
             "AND t.user.id NOT IN :followedUserIds " +
+
+            // --- NUEVA LÍNEA: Excluir hilos ocultos ---
+            "AND t.id NOT IN :hiddenThreadIds " +
+
             "AND (" +
             "    t.category.id IN :followedCategoryIds " +
             "    OR l.user.id IN :followedUserIds" +
@@ -143,6 +136,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             @Param("currentUserId") Long currentUserId,
             @Param("followedUserIds") List<Long> followedUserIds,
             @Param("followedCategoryIds") List<Long> followedCategoryIds,
+            @Param("hiddenThreadIds") List<Long> hiddenThreadIds,
             Pageable pageable);
 
     @Query("SELECT t FROM ThreadClass t " +
