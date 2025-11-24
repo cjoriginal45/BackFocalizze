@@ -80,31 +80,25 @@ public class CommentServiceImpl  implements CommentService {
     @Override
     @Transactional
     public void deleteComment(Long commentId, User currentUser) {
+        // 1. Verificar que el comentario existe Y que pertenece al usuario actual.
         CommentClass commentToDelete = commentRepository.findByIdAndUser(commentId, currentUser)
-                .orElseThrow(() -> new RuntimeException("Error..."));
+                .orElseThrow(() -> new RuntimeException("Comentario no encontrado o no tienes permiso para eliminarlo. ID: " + commentId));
 
-        // ... (lógica de borrado lógico y thread count) ...
+        // 2. Obtener el hilo asociado.
+        ThreadClass thread = commentToDelete.getThread();
+
+        // 3. CAMBIO: Marcar como eliminado en lugar de borrar.
         commentToDelete.setDeleted(true);
         commentRepository.save(commentToDelete);
 
-        ThreadClass thread = commentToDelete.getThread();
+        // 4. Actualizar el contador de comentarios en el hilo.
         thread.setCommentCount(Math.max(0, thread.getCommentCount() - 1));
         threadRepository.save(thread);
 
-        // --- DIAGNÓSTICO DE FECHAS ---
+        // 5. Lógica de "reembolso" de interacción.
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-
-        System.out.println("--- BORRANDO COMENTARIO ---");
-        System.out.println("Fecha Comentario: " + commentToDelete.getCreatedAt());
-        System.out.println("Inicio de Hoy: " + startOfToday);
-        boolean isToday = commentToDelete.getCreatedAt().isAfter(startOfToday);
-        System.out.println("¿Es de hoy?: " + isToday);
-
-        if (isToday) {
+        if (commentToDelete.getCreatedAt().isAfter(startOfToday)) {
             interactionLimitService.refundInteraction(currentUser, InteractionType.COMMENT);
-        } else {
-            System.out.println("No se pide reembolso porque el comentario es antiguo.");
         }
-        // -----------------------------
     }
 }
