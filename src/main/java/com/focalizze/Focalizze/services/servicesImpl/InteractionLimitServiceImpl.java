@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -77,13 +78,25 @@ public class InteractionLimitServiceImpl implements InteractionLimitService {
     public void refundInteraction(User user, InteractionType type) {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
 
-        if(type.equals(InteractionType.LIKE)) {
-            // Buscamos la interacción más reciente del tipo especificado que ocurrió hoy.
-            Optional<InteractionLog> logToRefund = interactionLogRepository
-                    .findFirstByUserAndTypeAndCreatedAtAfterOrderByCreatedAtDesc(user, type, startOfToday);
-            // Si encontramos un log para reembolsar, lo eliminamos.
-            logToRefund.ifPresent(interactionLogRepository::delete);
-        }
+        System.out.println("--- INTENTO DE REEMBOLSO ---");
+        System.out.println("Usuario: " + user.getUsername());
+        System.out.println("Tipo: " + type);
+        System.out.println("Buscando logs creados después de: " + startOfToday);
 
+        // Usamos la nueva consulta que devuelve una lista
+        List<InteractionLog> logs = interactionLogRepository.findLogsToRefund(user, type, startOfToday);
+
+        if (!logs.isEmpty()) {
+            // Tomamos el primero (el más reciente)
+            InteractionLog logToDelete = logs.get(0);
+            System.out.println("LOG ENCONTRADO. ID: " + logToDelete.getId() + " Fecha: " + logToDelete.getCreatedAt());
+
+            interactionLogRepository.delete(logToDelete);
+            System.out.println("LOG ELIMINADO CORRECTAMENTE.");
+        } else {
+            System.out.println("NO SE ENCONTRARON LOGS PARA REEMBOLSAR HOY.");
+            // Esto nos dirá si el problema es que no encuentra el registro
+        }
+        System.out.println("----------------------------");
     }
 }
