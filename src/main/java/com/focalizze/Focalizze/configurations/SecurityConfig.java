@@ -66,6 +66,7 @@ public class SecurityConfig {
                         //   - POST a /api/users/{username}/follow
                         //   - Y cualquier otro endpoint que crees en el futuro.
                         .requestMatchers("/api/comments/**").authenticated()
+                        .requestMatchers("/api/notifications/**").authenticated()
                         .anyRequest().authenticated()
                 )
 
