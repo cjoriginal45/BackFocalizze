@@ -70,6 +70,17 @@ public class NotificationServiceImpl implements NotificationService {
         return notificationPage.map(notificationMapper::toDto);
     }
 
+    @Override
+    public boolean hasUnreadNotifications(User user) {
+        return notificationRepository.existsByUserAndIsReadIsFalse(user);
+    }
+
+    @Override
+    @Transactional
+    public void markAllAsRead(User user) {
+        notificationRepository.markAllAsReadForUser(user.getId());
+    }
+
     /**
      * Método de ayuda para construir el mensaje de la notificación de forma consistente.
      */

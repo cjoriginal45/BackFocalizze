@@ -12,4 +12,7 @@ public interface NotificationService {
     void createAndSendNotification(User userToNotify, NotificationType type, User triggerUser, ThreadClass thread);
 
     Page<NotificationDto> getNotificationsForUser(User user, Pageable pageable);
+
+    boolean hasUnreadNotifications(User user);
+    void markAllAsRead(User user);
 }
