@@ -1,9 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
-import com.focalizze.Focalizze.dto.FeedThreadDto;
-import com.focalizze.Focalizze.dto.ProfileResponseDto;
-import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
-import com.focalizze.Focalizze.dto.ThreadResponseDto;
+import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
 import jakarta.validation.Valid;
@@ -82,5 +79,16 @@ public class ProfileController {
         } catch (Exception e) {
             return new ResponseEntity<>("No se pudo subir el archivo: " + e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    @GetMapping("/{username}/download")
+    public ResponseEntity<UserProfileDownloadDto> getProfileForDownload(@PathVariable String username) {
+        // Verificación de seguridad: solo el dueño del perfil puede acceder a esta info.
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        if (!currentUsername.equals(username)) {
+            return new ResponseEntity<>(HttpStatus.FORBIDDEN); // 403 Prohibido
+        }
+
+        return ResponseEntity.ok(profileService.getProfileForDownload(username));
     }
 }
