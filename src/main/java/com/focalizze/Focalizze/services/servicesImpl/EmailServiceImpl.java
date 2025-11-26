@@ -23,7 +23,7 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
 
             // URL que el usuario clickeará. Cambia el puerto si es necesario.
-            String resetUrl = "http://localhost:4200/new-password?token=" + token;
+            String resetUrl = "http://localhost:4200/reset-password?token=" + token;
 
             // Un HTML simple para el correo. Puedes hacerlo tan complejo como quieras.
             String htmlMsg = "<h3>Restauración de Contraseña</h3>"
