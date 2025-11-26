@@ -69,6 +69,9 @@ public class User implements UserDetails {
 
     private LocalDateTime createdAt;
 
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
+
     @OneToMany(mappedBy="user")
     private List<SavedThreads> savedThreads;
 
