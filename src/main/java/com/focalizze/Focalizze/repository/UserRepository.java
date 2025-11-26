@@ -62,4 +62,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
             "LEFT JOIN FETCH u.followedCategories " +
             "WHERE u.id = :id")
     Optional<User> findByIdWithFollows(@Param("id") Long id);
+
+    Optional<User> findByResetPasswordToken(String token);
 }
