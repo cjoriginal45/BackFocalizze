@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ProfileResponseDto;
 import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
+import com.focalizze.Focalizze.dto.UserProfileDownloadDto;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.FollowRepository;
@@ -172,5 +173,19 @@ public class ProfileServiceImpl implements ProfileService {
         // 6. Devolver la URL completa
         // 6. Return the full URL
         return fileDownloadUri;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UserProfileDownloadDto getProfileForDownload(String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+
+        // Mapeamos directamente la entidad al DTO de descarga
+        return new UserProfileDownloadDto(
+                user.getUsername(),
+                user.getAvatarUrl(defaultAvatarUrl),
+                user.getBiography()
+        );
     }
 }
