@@ -5,8 +5,10 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.RecommendationReasonType;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
+import com.focalizze.Focalizze.services.BlockService;
 import com.focalizze.Focalizze.services.FeedbackService;
 import com.focalizze.Focalizze.services.RecommendationService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
@@ -29,6 +31,7 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final ThreadEnricher threadEnricher;
     private final UserRepository userRepository;
     private final FeedbackService feedbackService;
+    private final BlockRepository blockRepository;
 
     // Pesos para el algoritmo de scoring
     private static final double LIKE_WEIGHT = 0.5;
@@ -53,12 +56,20 @@ public class RecommendationServiceImpl implements RecommendationService {
         // --- NUEVO: OBTENER HILOS OCULTOS ---
         List<Long> hiddenThreadIds = feedbackService.getHiddenThreadIds(currentUser);
 
+        Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedByCurrentUser);
+        allBlockedIds.addAll(whoBlockedCurrentUser);
+
         // --- PROTECCIÓN CONTRA LISTAS VACÍAS ---
         // JPA puede lanzar error si pasamos listas vacías a una cláusula IN o NOT IN.
         // Agregamos un ID ficticio (-1) si están vacías para evitar el error SQL.
         if (followedUserIds.isEmpty()) followedUserIds.add(-1L);
         if (followedCategoryIds.isEmpty()) followedCategoryIds.add(-1L);
         if (hiddenThreadIds.isEmpty()) hiddenThreadIds.add(-1L);
+        if (allBlockedIds.isEmpty()) allBlockedIds.add(-1L);
 
         // 2. SELECCIÓN DE CANDIDATOS
         // Ahora pasamos 'hiddenThreadIds' al repositorio.
@@ -67,6 +78,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 followedUserIds,
                 followedCategoryIds,
                 hiddenThreadIds,
+                allBlockedIds,
                 PageRequest.of(0, 100)
         );
 
@@ -114,7 +126,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             // Reutilizamos la lógica de búsqueda general, pero filtramos manualmente los ocultos aquí
             // para no crear otro método complejo en el repositorio solo para el fallback.
             Page<ThreadClass> fallbackThreads = threadRepository.findThreadsForDiscover(
-                    currentUser.getId(), followedUserIds, PageRequest.of(0, 20)
+                    currentUser.getId(), followedUserIds, allBlockedIds, PageRequest.of(0, 20)
             );
 
             for (ThreadClass thread : fallbackThreads) {

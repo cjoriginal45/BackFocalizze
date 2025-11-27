@@ -127,10 +127,8 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE t.isPublished = true AND t.isDeleted = false " +
             "AND t.user.id != :currentUserId " +
             "AND t.user.id NOT IN :followedUserIds " +
-
-            // --- NUEVA LÍNEA: Excluir hilos ocultos ---
             "AND t.id NOT IN :hiddenThreadIds " +
-
+            "AND t.user.id NOT IN :blockedUserIds " +
             "AND (" +
             "    t.category.id IN :followedCategoryIds " +
             "    OR l.user.id IN :followedUserIds" +
@@ -141,6 +139,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             @Param("followedUserIds") List<Long> followedUserIds,
             @Param("followedCategoryIds") List<Long> followedCategoryIds,
             @Param("hiddenThreadIds") List<Long> hiddenThreadIds,
+            @Param("blockedUserIds") Set<Long> blockedUserIds,
             Pageable pageable);
 
     @Query("SELECT t FROM ThreadClass t " +
