@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.models.Block;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.BlockRepository;
+import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.BlockService;
 import lombok.RequiredArgsConstructor;
@@ -20,7 +21,7 @@ public class BlockServiceImpl implements BlockService {
 
     private final UserRepository userRepository;
     private final BlockRepository blockRepository;
-
+    private final FollowRepository followRepository;
     @Override
     public boolean toggleBlock(String usernameToToggle) {
         // 1. Obtener al usuario actual (el que está bloqueando)
@@ -52,6 +53,22 @@ public class BlockServiceImpl implements BlockService {
                     .createdAt(LocalDateTime.now())
                     .build();
             blockRepository.save(newBlock);
+
+            long unfollowedCount1 = followRepository.deleteByUserFollowerAndUserFollowed(currentUser, userToToggle);
+            if (unfollowedCount1 > 0) {
+                // Si se eliminó una fila, actualizamos los contadores
+                userRepository.decrementFollowingCount(currentUser.getId());
+                userRepository.decrementFollowersCount(userToToggle.getId());
+            }
+
+            // 2. Forzar al usuario bloqueado a dejar de seguir al usuario actual.
+            long unfollowedCount2 = followRepository.deleteByUserFollowerAndUserFollowed(userToToggle, currentUser);
+            if (unfollowedCount2 > 0) {
+                // Si se eliminó una fila, actualizamos los contadores
+                userRepository.decrementFollowingCount(userToToggle.getId());
+                userRepository.decrementFollowersCount(currentUser.getId());
+            }
+
             return true;
         }
     }

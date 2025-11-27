@@ -40,22 +40,7 @@ public class SearchServiceImpl implements SearchService {
             return List.of();
         }
 
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Set<Long> blockedByCurrentUser = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
-        Set<Long> whoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
-
-        Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.addAll(blockedByCurrentUser);
-        allBlockedIds.addAll(whoBlockedCurrentUser);
-
-        List<User> users;
-        if (allBlockedIds.isEmpty()) {
-            // Consulta original si no hay bloqueos
-            users = userRepository.findTop5ByUsernameStartingWithIgnoreCase(cleanPrefix);
-        } else {
-            // Nueva consulta que excluye a los usuarios bloqueados
-            users = userRepository.findTop5ByUsernameStartingWithIgnoreCaseAndIdNotIn(cleanPrefix, allBlockedIds);
-        }
+        List<User> users = userRepository.findTop5ByUsernameStartingWithIgnoreCase(cleanPrefix);
 
         // Mapea a DTO
         return users.stream()

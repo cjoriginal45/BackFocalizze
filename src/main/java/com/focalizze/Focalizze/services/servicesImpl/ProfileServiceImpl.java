@@ -68,14 +68,6 @@ public class ProfileServiceImpl implements ProfileService {
         if (authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
 
-            boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
-                    blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
-
-            if (isBlocked) {
-                // Lanzamos una excepción que se puede capturar para devolver un 403 Forbidden.
-                throw new AccessDeniedException("Acceso denegado. No puedes ver el perfil de un usuario bloqueado o que te ha bloqueado.");
-            }
-
             // Calculamos 'isFollowing'
             //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
