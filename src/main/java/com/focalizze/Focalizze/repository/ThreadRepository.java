@@ -147,10 +147,12 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "WHERE t.isPublished = true AND t.isDeleted = false " +
             "AND t.user.id != :currentUserId " +
             "AND t.user.id NOT IN :followedUserIds " +
+            "AND t.user.id NOT IN :blockedUserIds " +
             "ORDER BY t.publishedAt DESC")
     Page<ThreadClass> findThreadsForDiscover(
             @Param("currentUserId") Long currentUserId,
             @Param("followedUserIds") List<Long> followedUserIds,
+            @Param("blockedUserIds") Set<Long> blockedUserIds,
             Pageable pageable
     );
 }
