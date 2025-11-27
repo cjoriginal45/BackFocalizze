@@ -70,4 +70,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT b.blocker.id FROM Block b WHERE b.blocked.id = :userId")
     Set<Long> findUserIdsWhoBlockedUser(@Param("userId") Long userId);
+
+    List<User> findTop5ByUsernameStartingWithIgnoreCaseAndIdNotIn(String username, Set<Long> ids);
 }

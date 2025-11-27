@@ -11,11 +11,14 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.SearchService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -37,7 +40,22 @@ public class SearchServiceImpl implements SearchService {
             return List.of();
         }
 
-        List<User> users = userRepository.findTop5ByUsernameStartingWithIgnoreCase(cleanPrefix);
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Set<Long> blockedByCurrentUser = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> whoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedByCurrentUser);
+        allBlockedIds.addAll(whoBlockedCurrentUser);
+
+        List<User> users;
+        if (allBlockedIds.isEmpty()) {
+            // Consulta original si no hay bloqueos
+            users = userRepository.findTop5ByUsernameStartingWithIgnoreCase(cleanPrefix);
+        } else {
+            // Nueva consulta que excluye a los usuarios bloqueados
+            users = userRepository.findTop5ByUsernameStartingWithIgnoreCaseAndIdNotIn(cleanPrefix, allBlockedIds);
+        }
 
         // Mapea a DTO
         return users.stream()
@@ -54,6 +72,14 @@ public class SearchServiceImpl implements SearchService {
             return List.of();
         }
 
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Set<Long> blockedByCurrentUser = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> whoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedByCurrentUser);
+        allBlockedIds.addAll(whoBlockedCurrentUser);
+
         // Estrategia de búsqueda:
         // 1. Intentar buscar por nombre de categoría exacto.
         Optional<CategoryClass> category = categoryRepository.findByName(query);
@@ -61,17 +87,18 @@ public class SearchServiceImpl implements SearchService {
         List<ThreadClass> foundThreads;
 
         if (category.isPresent()) {
-            // Si encontramos una categoría, devolvemos todos los hilos de esa categoría.
-            System.out.println("Buscando hilos por categoría: " + query);
             foundThreads = threadRepository.findByCategory(category.get());
         } else {
-            // Si no, realizamos una búsqueda de texto completo en el contenido de los posts.
-            System.out.println("Buscando hilos por contenido de post: " + query);
             foundThreads = threadRepository.findByPostContentContainingIgnoreCase(query);
         }
 
+
+        List<ThreadClass> filteredThreads = foundThreads.stream()
+                .filter(thread -> !allBlockedIds.contains(thread.getUser().getId()))
+                .toList();
+
         // Mapeamos los resultados al DTO de respuesta.
-        return threadMapper.toDtoList(foundThreads);
+        return threadMapper.toDtoList(filteredThreads);
     }
 
 }
