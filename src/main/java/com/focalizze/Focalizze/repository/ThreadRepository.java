@@ -14,6 +14,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
@@ -53,16 +54,19 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "    OR t.category.id IN :followedCategoryIds " +
             "    OR t.user.id = :currentUserId" +
             ") " +
+            "AND t.user.id NOT IN :blockedUserIds " +
             "ORDER BY t.publishedAt DESC",
             countQuery = "SELECT count(t) FROM ThreadClass t " +
                     "WHERE t.isPublished = true AND t.isDeleted = false " +
                     "AND (t.user.id IN :followedUserIds " +
                     "OR t.category.id IN :followedCategoryIds " +
-                    "OR t.user.id = :currentUserId)")
+                    "OR t.user.id = :currentUserId)" +
+                    "AND t.user.id NOT IN :blockedUserIds")
     Page<ThreadClass> findFollowingFeed(
             @Param("followedUserIds") List<Long> followedUserIds,
             @Param("followedCategoryIds") List<Long> followedCategoryIds,
-            @Param("currentUserId") Long currentUserId, // <-- ¡PARÁMETRO NUEVO AÑADIDO!
+            @Param("currentUserId") Long currentUserId,
+            @Param("blockedUserIds") Set<Long> blockedUserIds,
             Pageable pageable
     );
 

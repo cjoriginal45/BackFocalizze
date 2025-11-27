@@ -16,7 +16,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +48,18 @@ public class FeedServiceImpl implements FeedService {
                         .toList()
         );
 
+        Set<Long> blockedUserIds = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> userIdsWhoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedUserIds);
+        allBlockedIds.addAll(userIdsWhoBlockedCurrentUser);
+
+        // Si el set está vacío, JPQL puede dar error. Añadimos un valor imposible (-1L).
+        if (allBlockedIds.isEmpty()) {
+            allBlockedIds.add(-1L);
+        }
+
         if (followedUserIds.isEmpty() && followedCategoryIds.isEmpty()) {
             return Page.empty(pageable);
         }
@@ -56,6 +70,7 @@ public class FeedServiceImpl implements FeedService {
                 followedUserIds,
                 followedCategoryIds,
                 currentUser.getId(),
+                allBlockedIds,
                 pageable
         );
 
