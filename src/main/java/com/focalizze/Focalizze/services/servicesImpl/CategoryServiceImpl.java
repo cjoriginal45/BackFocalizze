@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.CategoryClass;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.CategoryRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,7 +35,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final UserRepository userRepository;
     private final ThreadRepository threadRepository;
     private final ThreadEnricher threadEnricher;
-
+    private final BlockRepository blockRepository;
 
     @Override
     public List<CategoryDto> getAllCategories() {
@@ -93,10 +95,28 @@ public class CategoryServiceImpl implements CategoryService {
 
         // El resto del método para enriquecer los hilos no cambia
         User currentUser = null;
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.add(-1L);
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
         if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
             currentUser = authenticatedUser;
+
+            Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+            Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+            // Re-inicializamos el Set para no tener el -1L si hay datos reales
+            allBlockedIds = new HashSet<>();
+            allBlockedIds.addAll(blockedByCurrentUser);
+            allBlockedIds.addAll(whoBlockedCurrentUser);
         }
+
+        final Set<Long> finalBlockedIds = allBlockedIds;
+        List<ThreadClass> content = threadPage.getContent().stream()
+                // Filtramos en memoria los hilos de usuarios bloqueados
+                .filter(thread -> !finalBlockedIds.contains(thread.getUser().getId()))
+                .toList();
 
         List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(threadPage.getContent(), currentUser);
         return new PageImpl<>(enrichedDtoList, pageable, threadPage.getTotalElements());
