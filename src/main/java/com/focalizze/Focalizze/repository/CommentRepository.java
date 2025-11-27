@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.util.Set;
 
 public interface CommentRepository extends JpaRepository<CommentClass, Long> {
 
@@ -24,6 +25,12 @@ public interface CommentRepository extends JpaRepository<CommentClass, Long> {
             countQuery = "SELECT count(c) FROM CommentClass c WHERE c.thread = :thread AND c.isDeleted = false")
     Page<CommentClass> findActiveCommentsByThread(@Param("thread") ThreadClass thread, Pageable pageable);
 
+    @Query("SELECT c FROM CommentClass c WHERE c.thread = :thread AND c.isDeleted = false AND c.user.id NOT IN :blockedUserIds")
+    Page<CommentClass> findActiveCommentsByThreadAndFilterBlocked(
+            @Param("thread") ThreadClass thread,
+            @Param("blockedUserIds") Set<Long> blockedUserIds,
+            Pageable pageable
+    );
 
     // Método para encontrar un comentario por su ID y su autor (para seguridad).
     Optional<CommentClass> findByIdAndUser(Long id, User user);
