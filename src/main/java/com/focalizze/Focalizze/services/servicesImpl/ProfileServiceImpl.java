@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
 import com.focalizze.Focalizze.dto.UserProfileDownloadDto;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final FileStorageService fileStorageService;
     private final ThreadEnricher threadEnricher;
     private static final int DAILY_THREAD_LIMIT = 3;
+    private final BlockRepository blockRepository;
 
     @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
     private String defaultAvatarUrl;
@@ -65,9 +68,15 @@ public class ProfileServiceImpl implements ProfileService {
         if (authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
 
-            // El espectador SÍ está autenticado. Ahora podemos calcular los datos subjetivos.
+            boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
+                    blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
 
-            // a) Calculamos 'isFollowing'
+            if (isBlocked) {
+                // Lanzamos una excepción que se puede capturar para devolver un 403 Forbidden.
+                throw new AccessDeniedException("Acceso denegado. No puedes ver el perfil de un usuario bloqueado o que te ha bloqueado.");
+            }
+
+            // Calculamos 'isFollowing'
             //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
 
@@ -101,17 +110,26 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getThreadsForUser(String username, Pageable pageable) {
-        // 1. Obtener el usuario del perfil que se está visitando.
+        // Obtener el usuario del perfil que se está visitando.
         User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 2. Obtener el usuario que está viendo la página (el que está logueado).
+        // Obtener el usuario que está viendo la página (el que está logueado).
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // 3. Buscamos los hilos del 'profileUser'.
+        // verificar que el usuario no este bloqueado
+        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
+                blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
+
+        if (isBlocked) {
+            // Si hay un bloqueo, simplemente devolvemos una página vacía.
+            return Page.empty(pageable);
+        }
+
+        // Buscamos los hilos del 'profileUser'.
         Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(profileUser, pageable);
 
-        // 4. Enriquecemos la respuesta usando el 'currentUser' como contexto.
+        // Enriquecemos la respuesta usando el 'currentUser' como contexto.
         return threadPage.map(thread -> threadEnricher.enrich(thread, currentUser));
     }
 
