@@ -111,6 +111,12 @@ public class User implements UserDetails {
     @OneToMany(mappedBy = "mentionedUser")
     private List<Mention> mentions;
 
+    @OneToMany(mappedBy="blocker")
+    private List<Block> blockedUser;
+
+    @OneToMany(mappedBy="blocked")
+    private List<Block> blockerUser;
+
     public User(){
         this.savedThreads = new ArrayList<>();
         this.comments = new ArrayList<>();
@@ -124,6 +130,8 @@ public class User implements UserDetails {
         this.interactions = new ArrayList<>();
         this.followedCategories = new HashSet<>();
         this.mentions = new ArrayList<>();
+        this.blockedUser = new ArrayList<>();
+        this.blockerUser = new ArrayList<>();
     }
 
 
