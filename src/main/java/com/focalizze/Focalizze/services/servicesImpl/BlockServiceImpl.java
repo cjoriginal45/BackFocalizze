@@ -54,7 +54,7 @@ public class BlockServiceImpl implements BlockService {
                     .build();
             blockRepository.save(newBlock);
 
-            long unfollowedCount1 = followRepository.deleteByUserFollowerAndUserFollowed(currentUser, userToToggle);
+            long unfollowedCount1 = followRepository.deleteFollowRelation(currentUser, userToToggle);
             if (unfollowedCount1 > 0) {
                 // Si se eliminó una fila, actualizamos los contadores
                 userRepository.decrementFollowingCount(currentUser.getId());
@@ -62,7 +62,7 @@ public class BlockServiceImpl implements BlockService {
             }
 
             // 2. Forzar al usuario bloqueado a dejar de seguir al usuario actual.
-            long unfollowedCount2 = followRepository.deleteByUserFollowerAndUserFollowed(userToToggle, currentUser);
+            long unfollowedCount2 = followRepository.deleteFollowRelation(userToToggle, currentUser);
             if (unfollowedCount2 > 0) {
                 // Si se eliminó una fila, actualizamos los contadores
                 userRepository.decrementFollowingCount(userToToggle.getId());

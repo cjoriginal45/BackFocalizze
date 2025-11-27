@@ -17,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -53,7 +52,6 @@ public class ProfileServiceImpl implements ProfileService {
         // 2. Obtener los contadores objetivos del perfil.
         long followersCount = followRepository.countByUserFollowed(profileUser);
         long followingCount = followRepository.countByUserFollower(profileUser);
-        long threadCount = threadRepository.countByUser(profileUser);
 
         // 3. Obtener el contexto de autenticación del usuario que está haciendo la petición.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -62,11 +60,17 @@ public class ProfileServiceImpl implements ProfileService {
         Long threadsAvailableToday = null;
         boolean isFollowing = false;
 
+        User currentUserBlocked = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUserBlocked, profileUser) ||
+                blockRepository.existsByBlockerAndBlocked(profileUser, currentUserBlocked);
+
         // 4. Comprobamos si el espectador está autenticado.
         //    Si no lo está, 'authentication' será nulo o no estará autenticado,
         //    y 'getPrincipal()' devolverá "anonymousUser".
         if (authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
+
 
             // Calculamos 'isFollowing'
             //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
@@ -95,7 +99,8 @@ public class ProfileServiceImpl implements ProfileService {
                 profileUser.getCreatedAt(),
                 isFollowing,
                 profileUser.getFollowingCount(),
-                profileUser.getFollowersCount()
+                profileUser.getFollowersCount(),
+                isBlocked
         );
     }
 
