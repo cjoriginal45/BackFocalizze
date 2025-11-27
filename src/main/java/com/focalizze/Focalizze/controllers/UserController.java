@@ -1,6 +1,7 @@
 package com.focalizze.Focalizze.controllers;
 
 import com.focalizze.Focalizze.dto.UserDto;
+import com.focalizze.Focalizze.dto.UserSummaryDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.FollowService;
 import com.focalizze.Focalizze.services.UserService;
@@ -11,6 +12,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
@@ -18,6 +21,29 @@ public class UserController {
 
     private final FollowService followService;
     private final UserService userService;
+
+    // Helper para obtener usuario actual del contexto de seguridad de forma segura
+    private User getCurrentUser() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            return (User) auth.getPrincipal();
+        }
+        return null;
+    }
+
+    // --- NUEVOS ENDPOINTS PARA EL MODAL DE SEGUIDORES/SEGUIDOS ---
+
+    @GetMapping("/{username}/followers")
+    public ResponseEntity<List<UserSummaryDto>> getUserFollowers(@PathVariable String username) {
+        // Pasamos el currentUser para calcular el booleano 'isFollowing' en la lista
+        return ResponseEntity.ok(followService.getFollowers(username, getCurrentUser()));
+    }
+
+    @GetMapping("/{username}/following")
+    public ResponseEntity<List<UserSummaryDto>> getUserFollowing(@PathVariable String username) {
+        // Pasamos el currentUser para calcular el booleano 'isFollowing' en la lista
+        return ResponseEntity.ok(followService.getFollowing(username, getCurrentUser()));
+    }
 
     @PostMapping("/{username}/follow")
     @PreAuthorize("isAuthenticated()")
