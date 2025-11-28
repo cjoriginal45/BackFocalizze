@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.services.servicesImpl;
 
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.UserService;
@@ -19,6 +20,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final FollowRepository followRepository;
+    private final BlockRepository blockRepository;
 
     @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
     private String defaultAvatarUrl;
@@ -59,10 +61,12 @@ public class UserServiceImpl implements UserService {
         User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
 
-        // 2. Calculamos si el 'currentUser' sigue al 'profileUser'.
         boolean isFollowing = false;
-        if (currentUser != null) {
+        boolean isBlocked = false;
+
+        if (currentUser != null && !currentUser.getId().equals(profileUser.getId())) {
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
+            isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser);
         }
 
         // 3. Construimos y devolvemos el DTO.
@@ -71,9 +75,11 @@ public class UserServiceImpl implements UserService {
                 profileUser.getUsername(),
                 profileUser.getDisplayName(),
                 profileUser.getAvatarUrl(defaultAvatarUrl),
-                profileUser.getCalculatedThreadCount(), isFollowing,
+                profileUser.getCalculatedThreadCount(),
+                isFollowing,
                 profileUser.getFollowingCount(),
-                profileUser.getFollowersCount()
+                profileUser.getFollowersCount(),
+                isBlocked
         );
     }
 
@@ -89,7 +95,9 @@ public class UserServiceImpl implements UserService {
                 user.getAvatarUrl(defaultAvatarUrl),
                 user.getCalculatedThreadCount(), false,
                 user.getFollowingCount(),
-                user.getFollowersCount()
+                user.getFollowersCount(),
+                false
+
         );
     }
 }

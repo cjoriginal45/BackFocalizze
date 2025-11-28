@@ -17,7 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -40,10 +42,21 @@ public class DiscoverFeedServiceImpl implements DiscoverFeedService {
         List<Long> followedUserIds = userWithFollows.getFollowing().stream()
                 .map(f -> f.getUserFollowed().getId()).toList();
 
+        Set<Long> blockedByCurrentUser = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> whoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedByCurrentUser);
+        allBlockedIds.addAll(whoBlockedCurrentUser);
+
+        if (allBlockedIds.isEmpty()) {
+            allBlockedIds.add(-1L);
+        }
+
         // 2. Obtener "Hilos Normales" (Base del Feed Discover)
         // Estos tendrán isRecommended = false
         Page<ThreadClass> normalPage = threadRepository.findThreadsForDiscover(
-                currentUser.getId(), followedUserIds, pageable
+                currentUser.getId(), followedUserIds,allBlockedIds, pageable
         );
 
         List<FeedThreadDto> normalDtos = threadEnricher.enrichList(normalPage.getContent(), currentUser);

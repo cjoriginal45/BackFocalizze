@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.dto.ProfileUpdateRequestDto;
 import com.focalizze.Focalizze.dto.UserProfileDownloadDto;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
@@ -36,6 +37,7 @@ public class ProfileServiceImpl implements ProfileService {
     private final FileStorageService fileStorageService;
     private final ThreadEnricher threadEnricher;
     private static final int DAILY_THREAD_LIMIT = 3;
+    private final BlockRepository blockRepository;
 
     @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
     private String defaultAvatarUrl;
@@ -50,7 +52,6 @@ public class ProfileServiceImpl implements ProfileService {
         // 2. Obtener los contadores objetivos del perfil.
         long followersCount = followRepository.countByUserFollowed(profileUser);
         long followingCount = followRepository.countByUserFollower(profileUser);
-        long threadCount = threadRepository.countByUser(profileUser);
 
         // 3. Obtener el contexto de autenticación del usuario que está haciendo la petición.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -59,15 +60,19 @@ public class ProfileServiceImpl implements ProfileService {
         Long threadsAvailableToday = null;
         boolean isFollowing = false;
 
+        User currentUserBlocked = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUserBlocked, profileUser) ||
+                blockRepository.existsByBlockerAndBlocked(profileUser, currentUserBlocked);
+
         // 4. Comprobamos si el espectador está autenticado.
         //    Si no lo está, 'authentication' será nulo o no estará autenticado,
         //    y 'getPrincipal()' devolverá "anonymousUser".
         if (authentication != null && authentication.isAuthenticated()
                 && authentication.getPrincipal() instanceof User currentUser) {
 
-            // El espectador SÍ está autenticado. Ahora podemos calcular los datos subjetivos.
 
-            // a) Calculamos 'isFollowing'
+            // Calculamos 'isFollowing'
             //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
 
@@ -94,24 +99,34 @@ public class ProfileServiceImpl implements ProfileService {
                 profileUser.getCreatedAt(),
                 isFollowing,
                 profileUser.getFollowingCount(),
-                profileUser.getFollowersCount()
+                profileUser.getFollowersCount(),
+                isBlocked
         );
     }
 
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getThreadsForUser(String username, Pageable pageable) {
-        // 1. Obtener el usuario del perfil que se está visitando.
+        // Obtener el usuario del perfil que se está visitando.
         User profileUser = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 2. Obtener el usuario que está viendo la página (el que está logueado).
+        // Obtener el usuario que está viendo la página (el que está logueado).
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // 3. Buscamos los hilos del 'profileUser'.
+        // verificar que el usuario no este bloqueado
+        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
+                blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
+
+        if (isBlocked) {
+            // Si hay un bloqueo, simplemente devolvemos una página vacía.
+            return Page.empty(pageable);
+        }
+
+        // Buscamos los hilos del 'profileUser'.
         Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(profileUser, pageable);
 
-        // 4. Enriquecemos la respuesta usando el 'currentUser' como contexto.
+        // Enriquecemos la respuesta usando el 'currentUser' como contexto.
         return threadPage.map(thread -> threadEnricher.enrich(thread, currentUser));
     }
 

@@ -4,8 +4,10 @@ import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.models.SavedThreads;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
+import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.SaveService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +18,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +30,8 @@ public class SaveServiceImpl implements SaveService {
     private final ThreadRepository threadRepository;
     private final SavedThreadRepository savedThreadRepository;
     private final ThreadEnricher threadEnricher;
+    private final UserRepository userRepository;
+    private final BlockRepository blockRepository;
 
     @Override
     @Transactional
@@ -70,9 +76,18 @@ public class SaveServiceImpl implements SaveService {
         //    Esto nos da una página de entidades 'SavedThreads'.
         Page<SavedThreads> savedThreadsPage = savedThreadRepository.findByUserOrderByCreatedAtDesc(currentUser, pageable);
 
+        // Obtenemos la lista de todos los IDs bloqueados relevantes.
+        Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
+        Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+        Set<Long> allBlockedIds = new HashSet<>();
+        allBlockedIds.addAll(blockedByCurrentUser);
+        allBlockedIds.addAll(whoBlockedCurrentUser);
+
         // 3. Extraemos las entidades 'ThreadClass' de las entidades 'SavedThreads'.
         List<ThreadClass> threads = savedThreadsPage.getContent().stream()
                 .map(SavedThreads::getThread)
+                // Nos quedamos solo con los hilos cuyo autor NO esté en la lista de bloqueados.
+                .filter(thread -> !allBlockedIds.contains(thread.getUser().getId()))
                 .toList();
 
         // 4. Enriquecemos esta lista de hilos con la información de interacción.

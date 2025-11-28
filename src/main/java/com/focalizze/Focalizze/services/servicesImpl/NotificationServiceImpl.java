@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.models.NotificationClass;
 import com.focalizze.Focalizze.models.NotificationType;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.NotificationRepository;
 import com.focalizze.Focalizze.services.NotificationService;
 import lombok.RequiredArgsConstructor;
@@ -28,9 +29,20 @@ public class NotificationServiceImpl implements NotificationService {
     // SimpMessagingTemplate es la herramienta de Spring para enviar mensajes a través de WebSockets.
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationMapper notificationMapper;
+    private final BlockRepository blockRepository;
 
     @Override
     public void createAndSendNotification(User userToNotify, NotificationType type, User triggerUser, ThreadClass thread) {
+        if (triggerUser != null) {
+            boolean isBlocked = blockRepository.existsByBlockerAndBlocked(userToNotify, triggerUser) ||
+                    blockRepository.existsByBlockerAndBlocked(triggerUser, userToNotify);
+            if (isBlocked) {
+                // Si hay un bloqueo, no se crea ni se envía la notificación.
+                log.warn("Notificación de {} a {} bloqueada.", triggerUser.getUsername(), userToNotify.getUsername());
+                return;
+            }
+        }
+
         // CONSTRUCCIÓN DEL MENSAJE: Ahora el mensaje se construye aquí.
         String message = buildMessage(type, triggerUser);
 

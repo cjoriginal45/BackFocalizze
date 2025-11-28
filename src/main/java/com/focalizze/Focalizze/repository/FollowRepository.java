@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.repository;
 import com.focalizze.Focalizze.models.Follow;
 import com.focalizze.Focalizze.models.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -24,6 +25,10 @@ public interface FollowRepository extends JpaRepository<Follow,Long> {
                                             @Param("followedIds") Set<Long> followedIds);
 
     boolean existsByUserFollowerAndUserFollowed(User follower, User followed);
+
+    @Modifying
+    @Query("DELETE FROM Follow f WHERE f.userFollower = :follower AND f.userFollowed = :followed")
+    int deleteFollowRelation(@Param("follower") User follower, @Param("followed") User followed);
 
     // Obtener la lista de usuarios QUE SIGUEN a un usuario (Seguidores)
     @Query("SELECT f.userFollower FROM Follow f WHERE f.userFollowed.username = :username ORDER BY f.createdAt DESC")

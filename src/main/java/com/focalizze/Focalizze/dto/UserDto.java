@@ -8,7 +8,8 @@ public record UserDto(
         Integer calculatedThreadCount,
         boolean isFollowing,
         Integer followingCount,
-        Integer followersCount
+        Integer followersCount,
+        boolean isBlocked
 ) {
 
 }

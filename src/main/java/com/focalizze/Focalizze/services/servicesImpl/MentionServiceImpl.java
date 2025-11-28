@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.models.Mention;
 import com.focalizze.Focalizze.models.NotificationType;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.MentionRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.MentionService;
@@ -25,6 +26,7 @@ public class MentionServiceImpl implements MentionService {
     private final UserRepository userRepository;
     private final MentionRepository mentionRepository;
     private final NotificationService notificationService;
+    private final BlockRepository blockRepository;
 
     private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w+)");
 
@@ -49,6 +51,15 @@ public class MentionServiceImpl implements MentionService {
         for (User mentionedUser : mentionedUsers) {
             // Evitamos auto-menciones y auto-notificaciones
             if (mentionedUser.getId().equals(author.getId())) {
+                continue;
+            }
+
+            boolean isBlocked = blockRepository.existsByBlockerAndBlocked(author, mentionedUser) ||
+                    blockRepository.existsByBlockerAndBlocked(mentionedUser, author);
+
+            if (isBlocked) {
+                // Si hay un bloqueo, simplemente saltamos a la siguiente mención.
+                // No se crea la entidad Mention ni la notificación.
                 continue;
             }
 

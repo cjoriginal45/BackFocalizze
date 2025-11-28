@@ -1,8 +1,10 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.focalizze.Focalizze.dto.BlockedUserDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.UserSummaryDto;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.services.BlockService;
 import com.focalizze.Focalizze.services.FollowService;
 import com.focalizze.Focalizze.services.UserService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +15,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/users")
@@ -21,6 +24,7 @@ public class UserController {
 
     private final FollowService followService;
     private final UserService userService;
+    private final BlockService blockService;
 
     // Helper para obtener usuario actual del contexto de seguridad de forma segura
     private User getCurrentUser() {
@@ -80,5 +84,17 @@ public class UserController {
         UserDto userDto = userService.mapToUserDto(currentUser);
 
         return ResponseEntity.ok(userDto);
+    }
+
+    @PostMapping("/{username}/block")
+    public ResponseEntity<Map<String, Boolean>> toggleBlock(@PathVariable String username) {
+        boolean isBlocked = blockService.toggleBlock(username);
+        // Devolvemos el estado final del bloqueo
+        return ResponseEntity.ok(Map.of("isBlocked", isBlocked));
+    }
+
+    @GetMapping("/blocked")
+    public ResponseEntity<List<BlockedUserDto>> getBlockedUsersList() {
+        return ResponseEntity.ok(blockService.getBlockedUsers());
     }
 }

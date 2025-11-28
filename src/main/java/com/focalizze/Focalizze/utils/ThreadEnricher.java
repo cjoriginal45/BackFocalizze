@@ -5,6 +5,7 @@ import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ public class ThreadEnricher {
     private final SavedThreadRepository savedThreadRepository;
     private final FeedMapper feedMapper;
     private final FollowRepository followRepository;
+    private final BlockRepository blockRepository;
 
     /**
      * Toma una entidad ThreadClass y la enriquece con el estado de interacción del usuario actual.
@@ -72,6 +74,8 @@ public class ThreadEnricher {
         // 3. Hacemos UNA consulta para saber a qué autores de esta lista sigue el usuario.
         Set<Long> followedUserIds = followRepository.findFollowedUserIdsByFollower(currentUser, authorIds);
 
+        Set<Long> blockedUserIds = blockRepository.findBlockedIdsByBlockerAndBlockedIdsIn(currentUser, authorIds);
+
 
         // --- MAPEO Y ENRIQUECIMIENTO FINAL ---
         return threads.stream().map(thread -> {
@@ -86,9 +90,12 @@ public class ThreadEnricher {
             // c. Lógica para 'isFollowing' (en memoria)
             boolean isFollowing = followedUserIds.contains(thread.getUser().getId());
 
+
             // d. Conversión base usando el mapper.
             //    Esto nos da un DTO con 'isLiked=false', 'isSaved=false' y 'user.isFollowing=false'.
             FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
+
+            boolean isBlocked = blockedUserIds.contains(thread.getUser().getId());
 
             // e. Creamos el UserDto final con el 'isFollowing' correcto.
             UserDto finalUserDto = new UserDto(
@@ -98,7 +105,8 @@ public class ThreadEnricher {
                     baseDto.user().avatarUrl(),
                     baseDto.user().calculatedThreadCount(), isFollowing,
                     baseDto.user().followingCount(),
-                    baseDto.user().followersCount()
+                    baseDto.user().followersCount(),
+                    isBlocked
             );
 
             // f. Creamos el FeedThreadDto final con todos los datos enriquecidos.

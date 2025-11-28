@@ -15,7 +15,8 @@ public record ProfileResponseDto(
         LocalDateTime registerDate,
         boolean isFollowing,
         Integer followingCount,
-        Integer followersCount
+        Integer followersCount,
+        boolean isBlocked
 
 ) {
 }

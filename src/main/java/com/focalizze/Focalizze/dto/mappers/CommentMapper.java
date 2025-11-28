@@ -68,7 +68,8 @@ public class CommentMapper {
                 user.getCalculatedThreadCount(),
                 false,
                 user.getFollowingCount(),
-                user.getFollowersCount()
+                user.getFollowersCount(),
+                false
         );
     }
 }
