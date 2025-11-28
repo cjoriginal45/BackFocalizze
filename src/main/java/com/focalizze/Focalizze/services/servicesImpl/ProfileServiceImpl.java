@@ -12,6 +12,7 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
+import com.focalizze.Focalizze.services.ThreadService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +40,9 @@ public class ProfileServiceImpl implements ProfileService {
     private static final int DAILY_THREAD_LIMIT = 3;
     private final BlockRepository blockRepository;
 
-    @Value("${app.default-avatar-url}") // Inyecta el valor desde application.properties
+    private final ThreadService threadService;
+
+    @Value("${app.default-avatar-url}")
     private String defaultAvatarUrl;
 
     @Override
@@ -60,28 +63,30 @@ public class ProfileServiceImpl implements ProfileService {
         Long threadsAvailableToday = null;
         boolean isFollowing = false;
 
-        User currentUserBlocked = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUserBlocked, profileUser) ||
-                blockRepository.existsByBlockerAndBlocked(profileUser, currentUserBlocked);
-
-        // 4. Comprobamos si el espectador está autenticado.
-        //    Si no lo está, 'authentication' será nulo o no estará autenticado,
-        //    y 'getPrincipal()' devolverá "anonymousUser".
+        // Obtener currentUser de forma segura para verificar bloqueos
+        User currentUser = null;
         if (authentication != null && authentication.isAuthenticated()
-                && authentication.getPrincipal() instanceof User currentUser) {
+                && authentication.getPrincipal() instanceof User) {
+            currentUser = (User) authentication.getPrincipal();
+        }
 
+        boolean isBlocked = false;
+        if (currentUser != null) {
+            isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
+                    blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
+        }
 
-            // Calculamos 'isFollowing'
-            //    Verificamos si el usuario autenticado (currentUser) sigue al usuario del perfil (profileUser).
+        // 4. Lógica si el espectador está autenticado.
+        if (currentUser != null) {
+
+            // a) Calculamos 'isFollowing'
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
 
             // b) Calculamos 'threadsAvailableToday' SÓLO si el espectador es el dueño del perfil.
             if (profileUser.getUsername().equals(currentUser.getUsername())) {
-                LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-                long threadsCreatedToday = threadRepository
-                        .countByUserAndCreatedAtAfter(currentUser, startOfToday);
-                threadsAvailableToday = Math.max(0L, DAILY_THREAD_LIMIT - threadsCreatedToday);
+                // USAMOS EL MÉTODO CENTRALIZADO DEL THREADSERVICE
+                // Esto garantiza que el cálculo sea consistente con la lógica de creación/borrado
+                threadsAvailableToday = (long) threadService.getThreadsAvailableToday(currentUser);
             }
         }
 
@@ -114,7 +119,7 @@ public class ProfileServiceImpl implements ProfileService {
         // Obtener el usuario que está viendo la página (el que está logueado).
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // verificar que el usuario no este bloqueado
+        // Verificar que el usuario no este bloqueado
         boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
                 blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
 
@@ -124,6 +129,8 @@ public class ProfileServiceImpl implements ProfileService {
         }
 
         // Buscamos los hilos del 'profileUser'.
+        // Asegúrate de que tu repositorio filtre 'isDeleted = false' en esta consulta,
+        // o usa una consulta personalizada si no lo hace por defecto.
         Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(profileUser, pageable);
 
         // Enriquecemos la respuesta usando el 'currentUser' como contexto.
@@ -131,7 +138,7 @@ public class ProfileServiceImpl implements ProfileService {
     }
 
     @Override
-    public ProfileResponseDto updateProfile(String username,ProfileUpdateRequestDto update) {
+    public ProfileResponseDto updateProfile(String username, ProfileUpdateRequestDto update) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
@@ -150,43 +157,28 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public String updateAvatar(String username, MultipartFile file) {
-        // 1. Validar el archivo
-        // 1. Validate the file
         if (file.isEmpty()) {
             throw new RuntimeException("El archivo está vacío.");
         }
-        //validar tipo de archivo
-        //validate file type
+
         String contentType = file.getContentType();
         if (contentType == null || (!contentType.equals("image/jpeg") && !contentType.equals("image/png") && !contentType.equals("image/webp"))) {
             throw new RuntimeException("Formato de archivo no válido. Solo se permiten JPG, PNG y WEBP.");
         }
 
-        // 2. Obtener el usuario
-        // 2. Get the user
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
-        // 3. Guardar el archivo en el disco usando el FileStorageService
-        //    Pasamos el username para generar un nombre de archivo único.
-        // 3. Save the file to disk using the FileStorageService
-        // We pass the username to generate a unique name.
         String filename = fileStorageService.storeFile(file, username);
 
-        // 4. Construir la URL completa que el frontend usará para acceder a la imagen
-        // 4. Build the full URL that the frontend will use to access the image
         String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/api/profiles/avatars/")
                 .path(filename)
                 .toUriString();
 
-        // 5. Actualizar la entidad User con la nueva URL del avatar
-        // 5. Update the User entity with the new avatar URL
         user.setAvatarUrl(fileDownloadUri);
         userRepository.save(user);
 
-        // 6. Devolver la URL completa
-        // 6. Return the full URL
         return fileDownloadUri;
     }
 
@@ -196,7 +188,6 @@ public class ProfileServiceImpl implements ProfileService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
 
-        // Mapeamos directamente la entidad al DTO de descarga
         return new UserProfileDownloadDto(
                 user.getUsername(),
                 user.getAvatarUrl(defaultAvatarUrl),
