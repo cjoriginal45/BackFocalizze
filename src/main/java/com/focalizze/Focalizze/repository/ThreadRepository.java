@@ -154,4 +154,13 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             @Param("blockedUserIds") Set<Long> blockedUserIds,
             Pageable pageable
     );
+
+    // Cuenta hilos creados desde 'start' que NO estén borrados y que estén publicados
+    @Query("SELECT COUNT(t) FROM ThreadClass t " +
+            "WHERE t.user = :user " +
+            "AND t.createdAt >= :start " +
+            "AND t.isPublished = true " +
+            "AND t.isDeleted = false")
+    long countActiveThreadsSince(@Param("user") User user,
+                                 @Param("start") LocalDateTime start);
 }
