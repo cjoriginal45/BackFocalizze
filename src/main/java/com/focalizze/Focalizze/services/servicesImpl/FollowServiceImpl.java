@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.UserSummaryDto;
 import com.focalizze.Focalizze.models.Follow;
 import com.focalizze.Focalizze.models.NotificationType;
 import com.focalizze.Focalizze.models.User;
@@ -14,7 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -77,5 +81,42 @@ public class FollowServiceImpl implements FollowService {
                     null
             );
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getFollowers(String targetUsername, User currentUser) {
+        // 1. Obtenemos la lista de entidades User (los seguidores)
+        List<User> followers = followRepository.findFollowersByUsername(targetUsername);
+        return mapToUserSummaryDto(followers, currentUser);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserSummaryDto> getFollowing(String targetUsername, User currentUser) {
+        // 1. Obtenemos la lista de entidades User (los seguidos)
+        List<User> following = followRepository.findFollowingByUsername(targetUsername);
+        return mapToUserSummaryDto(following, currentUser);
+    }
+
+    private List<UserSummaryDto> mapToUserSummaryDto(List<User> users, User currentUser) {
+        if (users.isEmpty()) return List.of();
+
+        Set<Long> myFollowsIds;
+        if (currentUser != null) {
+            // Obtenemos los IDs de esta lista que YO ya sigo para marcar el isFollowing
+            Set<Long> userIds = users.stream().map(User::getId).collect(Collectors.toSet());
+            myFollowsIds = followRepository.findFollowedUserIdsByFollower(currentUser, userIds);
+        } else {
+            myFollowsIds = Set.of();
+        }
+
+        return users.stream().map(user -> new UserSummaryDto(
+                user.getId(),
+                user.getUsername(),
+                user.getDisplayName(),
+                user.getAvatarUrl("assets/images/default-avatar.png"), // Manejo de nulo
+                myFollowsIds.contains(user.getId())
+        )).toList();
     }
 }

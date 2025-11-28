@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,4 +29,12 @@ public interface FollowRepository extends JpaRepository<Follow,Long> {
     @Modifying
     @Query("DELETE FROM Follow f WHERE f.userFollower = :follower AND f.userFollowed = :followed")
     int deleteFollowRelation(@Param("follower") User follower, @Param("followed") User followed);
+
+    // Obtener la lista de usuarios QUE SIGUEN a un usuario (Seguidores)
+    @Query("SELECT f.userFollower FROM Follow f WHERE f.userFollowed.username = :username ORDER BY f.createdAt DESC")
+    List<User> findFollowersByUsername(@Param("username") String username);
+
+    // Obtener la lista de usuarios A LOS QUE SIGUE un usuario (Seguidos)
+    @Query("SELECT f.userFollowed FROM Follow f WHERE f.userFollower.username = :username ORDER BY f.createdAt DESC")
+    List<User> findFollowingByUsername(@Param("username") String username);
 }
