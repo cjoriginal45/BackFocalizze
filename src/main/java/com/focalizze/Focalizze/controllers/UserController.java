@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.focalizze.Focalizze.dto.BlockedUserDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.BlockService;
@@ -12,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -65,5 +67,10 @@ public class UserController {
         boolean isBlocked = blockService.toggleBlock(username);
         // Devolvemos el estado final del bloqueo
         return ResponseEntity.ok(Map.of("isBlocked", isBlocked));
+    }
+
+    @GetMapping("/blocked")
+    public ResponseEntity<List<BlockedUserDto>> getBlockedUsersList() {
+        return ResponseEntity.ok(blockService.getBlockedUsers());
     }
 }
