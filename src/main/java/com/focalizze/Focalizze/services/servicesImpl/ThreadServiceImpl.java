@@ -43,6 +43,18 @@ public class ThreadServiceImpl implements ThreadService {
     private static final int DAILY_THREAD_LIMIT = 3;
 
 
+    // --- MÉTODO PARA OBTENER DISPONIBLES ---
+    @Override
+    @Transactional(readOnly = true)
+    public int getThreadsAvailableToday(User user) {
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        // Usamos la query personalizada que IGNORA los borrados
+        long threadsCreatedToday = threadRepository.countActiveThreadsSince(user, startOfToday);
+
+        // Retornamos el restante, asegurando que no sea negativo
+        return Math.max(0, DAILY_THREAD_LIMIT - (int) threadsCreatedToday);
+    }
+
     //Logica de negocio para crear un hilo
     //Business logic to create a thread
     @Override
