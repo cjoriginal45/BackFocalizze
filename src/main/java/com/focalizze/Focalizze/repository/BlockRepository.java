@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -27,4 +28,7 @@ public interface BlockRepository extends JpaRepository<Block, Long> {
             @Param("blocker") User blocker,
             @Param("authorIds") Set<Long> authorIds
     );
+
+    @Query("SELECT b.blocked FROM Block b WHERE b.blocker = :blocker ORDER BY b.createdAt DESC")
+    List<User> findBlockedUsersByBlocker(@Param("blocker") User blocker);
 }

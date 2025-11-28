@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.BlockedUserDto;
 import com.focalizze.Focalizze.models.Block;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.BlockRepository;
@@ -7,11 +8,13 @@ import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.BlockService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -22,6 +25,10 @@ public class BlockServiceImpl implements BlockService {
     private final UserRepository userRepository;
     private final BlockRepository blockRepository;
     private final FollowRepository followRepository;
+
+    @Value("${app.default-avatar-url}")
+    private String defaultAvatarUrl;
+
     @Override
     public boolean toggleBlock(String usernameToToggle) {
         // 1. Obtener al usuario actual (el que está bloqueando)
@@ -71,6 +78,26 @@ public class BlockServiceImpl implements BlockService {
 
             return true;
         }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BlockedUserDto> getBlockedUsers() {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado"));
+
+        List<User> blockedUsers = blockRepository.findBlockedUsersByBlocker(currentUser);
+
+        // Mapeamos la lista de entidades User a una lista de DTOs
+        return blockedUsers.stream()
+                .map(user -> new BlockedUserDto(
+                        user.getId(),
+                        user.getUsername(),
+                        user.getDisplayName(),
+                        user.getAvatarUrl(defaultAvatarUrl)
+                ))
+                .toList();
     }
 
 }
