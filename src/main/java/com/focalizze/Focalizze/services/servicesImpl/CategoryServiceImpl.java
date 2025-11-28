@@ -96,27 +96,33 @@ public class CategoryServiceImpl implements CategoryService {
         // El resto del método para enriquecer los hilos no cambia
         User currentUser = null;
         Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.add(-1L);
+
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         if (authentication != null && authentication.getPrincipal() instanceof User authenticatedUser) {
             currentUser = authenticatedUser;
 
+            // 1. Obtenemos todos los IDs bloqueados relevantes.
             Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
             Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+            Set<Long> allBlocked = new HashSet<>();
+            allBlocked.addAll(blockedByCurrentUser);
+            allBlocked.addAll(whoBlockedCurrentUser);
 
-            // Re-inicializamos el Set para no tener el -1L si hay datos reales
-            allBlockedIds = new HashSet<>();
-            allBlockedIds.addAll(blockedByCurrentUser);
-            allBlockedIds.addAll(whoBlockedCurrentUser);
+            if (!allBlockedIds.isEmpty()) {
+                // 2. Filtramos la lista de hilos ANTES de enriquecerla.
+                List<ThreadClass> filteredThreads = threadPage.getContent().stream()
+                        .filter(thread -> !allBlockedIds.contains(thread.getUser().getId()))
+                        .toList();
+
+                // 3. Enriquecemos la lista FILTRADA.
+                List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(filteredThreads, currentUser);
+
+                // 4. Devolvemos una nueva página con el contenido filtrado y enriquecido.
+                return new PageImpl<>(enrichedDtoList, pageable, threadPage.getTotalElements());
+            }
         }
-
-        final Set<Long> finalBlockedIds = allBlockedIds;
-        List<ThreadClass> content = threadPage.getContent().stream()
-                // Filtramos en memoria los hilos de usuarios bloqueados
-                .filter(thread -> !finalBlockedIds.contains(thread.getUser().getId()))
-                .toList();
 
         List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(threadPage.getContent(), currentUser);
         return new PageImpl<>(enrichedDtoList, pageable, threadPage.getTotalElements());
