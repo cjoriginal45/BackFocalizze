@@ -7,7 +7,9 @@ import com.focalizze.Focalizze.services.DiscoverFeedService;
 import com.focalizze.Focalizze.services.FeedService;
 import com.focalizze.Focalizze.services.FeedbackService;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -29,7 +31,16 @@ public class FeedController {
 
     @GetMapping
     public ResponseEntity<Page<FeedThreadDto>> getFeed(
-            @PageableDefault(size = 10, sort = "createdAt", direction = org.springframework.data.domain.Sort.Direction.DESC) Pageable pageable) {
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        // Configuramos la paginación ordenando por fecha de publicación descendente (lo más nuevo primero).
+        // Esto es importante para que el "ORDER BY t.publishedAt DESC" del repositorio funcione bien con la paginación.
+        Pageable pageable = PageRequest.of(page, size, Sort.by("publishedAt").descending());
+
+        // Llamamos al servicio.
+        // NO pasamos el usuario aquí porque tu FeedServiceImpl ya lo obtiene internamente con:
+        // SecurityContextHolder.getContext().getAuthentication().getName();
         return ResponseEntity.ok(feedService.getFeed(pageable));
     }
 

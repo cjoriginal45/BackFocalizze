@@ -30,12 +30,11 @@ public class FeedServiceImpl implements FeedService {
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getFeed(Pageable pageable) {
-        // 1. Obtenemos al usuario autenticado y lo recargamos para acceder a sus colecciones LAZY.
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
                 .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"));
 
-        // 2. Extraemos las listas de IDs que el usuario sigue.
+        // 2. Extraemos las listas de IDs
         List<Long> followedUserIds = new ArrayList<>(
                 currentUser.getFollowing().stream()
                         .map(follow -> follow.getUserFollowed().getId())
@@ -48,6 +47,17 @@ public class FeedServiceImpl implements FeedService {
                         .toList()
         );
 
+        // --- CORRECCIÓN: EVITAR SQL ERROR EN LISTAS VACÍAS ---
+        // Si las listas están vacías, JPA puede lanzar error con "IN ()".
+        // Agregamos -1L (un ID que no existe) para que la query sea válida: "IN (-1)"
+        if (followedUserIds.isEmpty()) {
+            followedUserIds.add(-1L);
+        }
+        if (followedCategoryIds.isEmpty()) {
+            followedCategoryIds.add(-1L);
+        }
+
+        // --- BLOQUEADOS ---
         Set<Long> blockedUserIds = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
         Set<Long> userIdsWhoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
 
@@ -55,32 +65,26 @@ public class FeedServiceImpl implements FeedService {
         allBlockedIds.addAll(blockedUserIds);
         allBlockedIds.addAll(userIdsWhoBlockedCurrentUser);
 
-        // Si el set está vacío, JPQL puede dar error. Añadimos un valor imposible (-1L).
         if (allBlockedIds.isEmpty()) {
             allBlockedIds.add(-1L);
         }
 
-        if (followedUserIds.isEmpty() && followedCategoryIds.isEmpty()) {
-            return Page.empty(pageable);
-        }
+        // --- ELIMINADO EL IF QUE RETORNABA PAGE.EMPTY ---
+        // Ahora siempre ejecutamos la consulta, porque currentUser.getId()
+        // siempre traerá al menos mis propios hilos.
 
-
-        // 3. Obtenemos la PÁGINA de entidades 'ThreadClass' filtradas.
+        // 3. Obtenemos la PÁGINA
         Page<ThreadClass> threadPage = threadRepository.findFollowingFeed(
                 followedUserIds,
                 followedCategoryIds,
-                currentUser.getId(),
+                currentUser.getId(), // Aquí se incluyen tus hilos
                 allBlockedIds,
                 pageable
         );
 
-        //    Extraemos la LISTA de contenido de la página.
         List<ThreadClass> threadsOnPage = threadPage.getContent();
-
-        //    Pasamos la LISTA al enriquecedor.
         List<FeedThreadDto> enrichedContent = threadEnricher.enrichList(threadsOnPage, currentUser);
 
-        // 5. Reconstruimos y devolvemos un nuevo objeto 'Page'.
         return new PageImpl<>(enrichedContent, pageable, threadPage.getTotalElements());
     }
 }
