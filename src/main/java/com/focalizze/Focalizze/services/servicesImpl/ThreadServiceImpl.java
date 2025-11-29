@@ -48,10 +48,8 @@ public class ThreadServiceImpl implements ThreadService {
     @Transactional(readOnly = true)
     public int getThreadsAvailableToday(User user) {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        // Usamos la query personalizada que IGNORA los borrados
+        // USAMOS LA QUERY CORREGIDA QUE IGNORA BORRADOS
         long threadsCreatedToday = threadRepository.countActiveThreadsSince(user, startOfToday);
-
-        // Retornamos el restante, asegurando que no sea negativo
         return Math.max(0, DAILY_THREAD_LIMIT - (int) threadsCreatedToday);
     }
 
@@ -60,22 +58,16 @@ public class ThreadServiceImpl implements ThreadService {
     @Override
     @Transactional
     public ThreadResponseDto createThread(ThreadRequestDto requestDto) {
-        // Obtener el usuario autenticado desde el contexto de seguridad
-        // Get the authenticated user from the security context
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado, no se puede crear el hilo."));
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado."));
 
-        // Calcular cuántos hilos ha creado el usuario hoy
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        long threadsCreatedToday = threadRepository.countByUserAndCreatedAtAfter(currentUser, startOfToday);
-
-        if (threadsCreatedToday >= DAILY_THREAD_LIMIT) {
-            // Si se alcanza el límite, lanzamos la excepción y la ejecución se detiene aquí.
+        // VALIDACIÓN: Usamos el método que ignora los hilos borrados
+        if (getThreadsAvailableToday(currentUser) <= 0) {
             throw new DailyLimitExceededException("Límite diario de " + DAILY_THREAD_LIMIT + " hilos alcanzado.");
         }
 
-        CategoryClass category = null; // Inicia como null
+        CategoryClass category = null;
         String categoryName = requestDto.category();
 
         if (categoryName != null && !categoryName.equalsIgnoreCase("Ninguna")) {
@@ -84,69 +76,35 @@ public class ThreadServiceImpl implements ThreadService {
         }
 
         boolean isScheduled = requestDto.scheduledTime() != null;
-
         LocalDateTime creationTime = LocalDateTime.now();
-        LocalDateTime publicationTime;
+        LocalDateTime publicationTime = isScheduled ? requestDto.scheduledTime() : creationTime;
 
-        if (isScheduled) {
-            publicationTime = requestDto.scheduledTime(); // La publicación es en el futuro
-        } else {
-            publicationTime = creationTime; // La publicación es ahora
-        }
-
-        // Construir la entidad principal del hilo
-        // Build the main entity of the thread
         ThreadClass newThread = ThreadClass.builder()
                 .user(currentUser)
                 .category(category)
-                .createdAt(LocalDateTime.now())
+                .createdAt(creationTime)
                 .isPublished(!isScheduled)
                 .publishedAt(publicationTime)
                 .scheduledTime(requestDto.scheduledTime())
+                .isDeleted(false) // Nace vivo
                 .likeCount(0)
                 .commentCount(0)
                 .saveCount(0)
                 .viewCount(0)
                 .build();
 
-        // Construir las entidades de los posts y asociarlas al hilo
-        // Build the post entities and associate them with the thread
-        Post post1 = Post.builder()
-                .content(requestDto.post1())
-                .position(1)
-                .thread(newThread)
-                .build();
+        Post post1 = Post.builder().content(requestDto.post1()).position(1).thread(newThread).build();
+        Post post2 = Post.builder().content(requestDto.post2()).position(2).thread(newThread).build();
+        Post post3 = Post.builder().content(requestDto.post3()).position(3).thread(newThread).build();
 
-        Post post2 = Post.builder()
-                .content(requestDto.post2())
-                .position(2)
-                .thread(newThread)
-                .build();
-
-        Post post3 = Post.builder()
-                .content(requestDto.post3())
-                .position(3)
-                .thread(newThread)
-                .build();
-
-        // La relación es bidireccional, así que añadimos los posts a la lista del hilo
-        // The relationship is bidirectional, so we add the posts to the thread list
         newThread.setPosts(List.of(post1, post2, post3));
 
-        // Guardar el hilo en la base de datos
-        // Gracias a `cascade = CascadeType.ALL`, al guardar el hilo, los posts se guardarán automáticamente.
-        // Save the thread to the database
-        // Thanks to `cascade = CascadeType.ALL`, when saving the thread, the messages will be saved automatically.
         ThreadClass savedThread = threadRepository.save(newThread);
 
-        //procesar menciones
         for (Post post : savedThread.getPosts()) {
             mentionService.processMentions(post, currentUser);
         }
 
-
-        // Mapear la entidad guardada a un DTO de respuesta y devolverlo
-        // Map the saved entity to a response DTO and return it
         return threadMapper.mapToResponseDto(savedThread);
     }
 
@@ -160,6 +118,9 @@ public class ThreadServiceImpl implements ThreadService {
         ThreadClass thread = threadRepository.findByIdWithDetails(threadId)
                 .orElseThrow(() -> new NoSuchElementException("No se encontró un hilo con el ID: " + threadId));
 
+        if (thread.isDeleted()) {
+            throw new NoSuchElementException("Hilo eliminado: " + threadId);
+        }
         // 2. Incrementamos el contador de vistas
         // 2. We increase the view counter
         thread.setViewCount(thread.getViewCount() + 1);
