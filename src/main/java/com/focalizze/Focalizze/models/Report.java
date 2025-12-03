@@ -21,22 +21,28 @@ public class Report {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String reason;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ReportReason reason;
+
+    @Column(length = 500)
+    private String description;
 
     @Enumerated(EnumType.STRING)
     private ReportStatus status;
 
     private LocalDateTime createdAt;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "reporter_id")
-    private User userReporter;      // Usuario que hace el reporte
+    private User userReporter;
 
-    @ManyToOne
-    @JoinColumn(name = "user_reported_id") // Cambié el nombre para claridad
-    private User userReported;      // Usuario que es reportado
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_reported_id")
+    private User userReported;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="thread_id")
     private ThreadClass thread;
+
 }
