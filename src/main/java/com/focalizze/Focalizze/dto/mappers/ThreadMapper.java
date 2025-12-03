@@ -26,7 +26,8 @@ public class ThreadMapper {
                 thread.getUser().getCalculatedThreadCount(), false,
                 thread.getUser().getFollowingCount(),
                 thread.getUser().getFollowersCount(),
-                false
+                false,
+                thread.getUser().getRole().name()
         );
 
         StatsDto statsDto = new StatsDto(
