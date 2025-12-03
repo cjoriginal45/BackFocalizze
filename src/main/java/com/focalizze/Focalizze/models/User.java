@@ -47,6 +47,10 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Integer tokenVersion = 0;
 
+    private String twoFactorCode; // El código de 6 dígitos
+
+    private LocalDateTime twoFactorCodeExpiry; // Cuándo vence el código
+
     @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
     private Integer calculatedThreadCount;
 
