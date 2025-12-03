@@ -39,6 +39,14 @@ public class User implements UserDetails {
 
     private String avatarUrl;
 
+    // CAMPO 1: Para la verificación en 2 pasos
+    @Column(nullable = false)
+    private boolean isTwoFactorEnabled = false;
+
+    // CAMPO 2: Para invalidar tokens (Logout masivo)
+    @Column(nullable = false)
+    private Integer tokenVersion = 0;
+
     @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
     private Integer calculatedThreadCount;
 

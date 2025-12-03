@@ -28,7 +28,8 @@ public class FeedMapper {
                 thread.getUser().getCalculatedThreadCount(), false,
                 thread.getUser().getFollowingCount(),
                 thread.getUser().getFollowersCount(),
-                false
+                false,
+                thread.getUser().isTwoFactorEnabled()
         );
 
         List<String> postContents = thread.getPosts().stream()
