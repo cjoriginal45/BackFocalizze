@@ -81,7 +81,8 @@ public class LoginControllerTest {
         loginRequest = new LoginRequestDto("testuser", "password");
         fakeToken = "fake.jwt.token.string";
         loginResponse = new LoginResponseDto(testUser.getId(), fakeToken,
-                testUser.getDisplayName(),testUser.getAvatarUrl(),testUser.getFollowingCount(),testUser.getFollowersCount());
+                testUser.getDisplayName(),testUser.getAvatarUrl(),testUser.getFollowingCount(),
+                testUser.getFollowersCount(),testUser.getRole().toString());
     }
 
 
