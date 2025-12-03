@@ -79,7 +79,8 @@ public class UserServiceImpl implements UserService {
                 isFollowing,
                 profileUser.getFollowingCount(),
                 profileUser.getFollowersCount(),
-                isBlocked
+                isBlocked,
+                profileUser.getRole().name()
         );
     }
 
@@ -96,7 +97,8 @@ public class UserServiceImpl implements UserService {
                 user.getCalculatedThreadCount(), false,
                 user.getFollowingCount(),
                 user.getFollowersCount(),
-                false
+                false,
+                user.getRole().name()
 
         );
     }
