@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.utils;
 
+import com.focalizze.Focalizze.models.User;
 import io.jsonwebtoken.security.Keys;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
@@ -17,43 +18,29 @@ import java.util.function.Function;
 @Component
 public class JwtUtil {
 
-    // Una clave secreta para firmar el token.
-    // A secret key to sign the token.
     @Value("${jwt.secret.key}")
     private String SECRET_KEY;
 
     private Key key;
 
-    // Este método se ejecuta una vez después de que se inyectan las dependencias.
-    // This method is executed once after dependencies are injected.
     @PostConstruct
     public void init() {
-        // Convierte la clave secreta (String) en un objeto Key que jjwt puede usar.
-        // Converts the secret key (String) to a Key object that jjwt can use.
         this.key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
     }
 
-    // Extrae el nombre de usuario del token JWT.
-    // Extract the username from the JWT token.
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
 
-    // Extrae la fecha de expiración del token JWT.
-    // Extract the JWT token expiration date.
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
 
-    // Método genérico para extraer una "claim" del token.
-    // Generic method to extract a claim from the token.
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
-    // Usa la nueva API de jjwt con el objeto Key.
-    // Use the new jjwt API with the Key object.
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(key)
@@ -62,22 +49,25 @@ public class JwtUtil {
                 .getBody();
     }
 
-    // Verifica si el token ha expirado.
-    // Check if the token has expired.
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
 
-    // Genera un token JWT para un usuario.
-    // Generate a JWT token for a user.
+    // --- AQUÍ ESTÁ EL CAMBIO EN LA GENERACIÓN ---
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
+
+        // Verificamos si el UserDetails es realmente nuestra entidad User
+        if (userDetails instanceof User user) {
+            // Guardamos la versión actual del token en el payload
+            claims.put("tokenVersion", user.getTokenVersion());
+        }
+
         return createToken(claims, userDetails.getUsername());
     }
 
-    // Usa la nueva API de jjwt con el objeto Key.
-    // Use the new jjwt API with the Key object.
     private String createToken(Map<String, Object> claims, String subject) {
+        // 10 horas de expiración
         final long expirationTime = 1000 * 60 * 60 * 10;
 
         return Jwts.builder()
@@ -89,10 +79,29 @@ public class JwtUtil {
                 .compact();
     }
 
-    // Valida si un token es correcto y no ha expirado.
-    // Validates if a token is correct and has not expired.
+    // --- AQUÍ ESTÁ EL CAMBIO EN LA VALIDACIÓN ---
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+
+        // 1. Validación estándar: usuario coincide y no ha expirado
+        boolean isStandardValid = (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+
+        if (!isStandardValid) {
+            return false;
+        }
+
+        // 2. Validación de versión (Logout masivo)
+        if (userDetails instanceof User user) {
+            // Extraemos la versión que está escrita dentro del token
+            Integer tokenVersionInClaim = extractClaim(token, claims -> claims.get("tokenVersion", Integer.class));
+
+            // Si el token no tiene versión (es viejo) o la versión no coincide con la actual en BD
+            // significa que la sesión fue revocada.
+            if (tokenVersionInClaim == null || !tokenVersionInClaim.equals(user.getTokenVersion())) {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

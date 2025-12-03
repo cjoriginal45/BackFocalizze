@@ -18,7 +18,6 @@ import java.io.IOException;
 public class JwtRequestFilter extends OncePerRequestFilter {
 
     private final UserDetailsService userDetailsService;
-
     private final JwtUtil jwtUtil;
 
     public JwtRequestFilter(UserDetailsService userDetailsService, JwtUtil jwtUtil) {
@@ -35,21 +34,23 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         String username = null;
         String jwt = null;
 
-        // Verifica si la cabecera "Authorization" existe y si comienza con "Bearer ".
-        // Checks if the "Authorization" header exists and if it starts with "Bearer ".
         if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
             jwt = authorizationHeader.substring(7);
-            username = jwtUtil.extractUsername(jwt);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                // Si el token está mal formado o expirado, jwtUtil lanzará excepción.
+                // Logueamos o ignoramos, el contexto de seguridad quedará vacío.
+                logger.error("Error extrayendo username del token JWT", e);
+            }
         }
 
-        // Si se extrajo el nombre de usuario y no hay una autenticación en el contexto de seguridad actual.
-        // If the username was extracted and there is no authentication in the current security context.
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
+            // Carga el usuario desde la BD (trae el tokenVersion actualizado)
             UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
 
-            // Si el token es válido, configura la autenticación de Spring Security.
-            // If the token is valid, configure Spring Security authentication.
+            // Valida incluyendo la versión del token
             if (jwtUtil.validateToken(jwt, userDetails)) {
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
