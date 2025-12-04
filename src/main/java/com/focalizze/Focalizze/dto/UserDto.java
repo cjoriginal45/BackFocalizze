@@ -9,7 +9,8 @@ public record UserDto(
         boolean isFollowing,
         Integer followingCount,
         Integer followersCount,
-        boolean isBlocked
+        boolean isBlocked,
+        boolean isTwoFactorEnabled
 ) {
 
 }

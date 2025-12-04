@@ -69,7 +69,8 @@ public class CommentMapper {
                 false,
                 user.getFollowingCount(),
                 user.getFollowersCount(),
-                false
+                false,
+                user.isTwoFactorEnabled()
         );
     }
 }

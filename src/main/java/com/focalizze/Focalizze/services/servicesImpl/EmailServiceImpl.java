@@ -42,4 +42,35 @@ public class EmailServiceImpl implements EmailService {
             System.err.println("Error al enviar el email: " + e.getMessage());
         }
     }
+
+    @Async
+    @Override
+    public void sendTwoFactorCode(String to, String code) {
+        try {
+            MimeMessage mimeMessage = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, "utf-8");
+
+            // Diseño HTML para el código OTP
+            String htmlMsg = "<div style=\"font-family: Arial, sans-serif; color: #333;\">"
+                    + "<h2 style=\"color: #01344a;\">Verificación de Seguridad</h2>"
+                    + "<p>Alguien está intentando iniciar sesión en tu cuenta de Focalizze. Usa el siguiente código para completar el proceso:</p>"
+                    + "<div style=\"background-color: #f4f4f4; border-radius: 8px; padding: 20px; text-align: center; margin: 20px 0;\">"
+                    + "<span style=\"font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #01344a;\">" + code + "</span>"
+                    + "</div>"
+                    + "<p>Este código expirará en <strong>5 minutos</strong>.</p>"
+                    + "<p style=\"font-size: 12px; color: #777;\">Si no fuiste tú, te recomendamos cambiar tu contraseña inmediatamente.</p>"
+                    + "</div>";
+
+            helper.setText(htmlMsg, true); // true para HTML
+            helper.setTo(to);
+            helper.setSubject("Focalizze - Tu código de verificación: " + code);
+            helper.setFrom("noreply@focalizze.com");
+
+            mailSender.send(mimeMessage);
+            System.out.println("Email 2FA enviado a " + to);
+
+        } catch (MessagingException e) {
+            System.err.println("Error al enviar el email de 2FA: " + e.getMessage());
+        }
+    }
 }
