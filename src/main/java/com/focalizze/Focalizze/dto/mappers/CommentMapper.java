@@ -70,6 +70,7 @@ public class CommentMapper {
                 user.getFollowingCount(),
                 user.getFollowersCount(),
                 false,
+                user.getRole().name(),
                 user.isTwoFactorEnabled()
         );
     }

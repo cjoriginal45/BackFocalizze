@@ -107,6 +107,7 @@ public class ThreadEnricher {
                     baseDto.user().followingCount(),
                     baseDto.user().followersCount(),
                     isBlocked,
+                    baseDto.user().role(),
                     baseDto.user().isTwoFactorEnabled()
             );
 

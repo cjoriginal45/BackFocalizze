@@ -66,7 +66,7 @@ public class AuthController {
             System.out.println(">>> ERROR: BadCredentialsException saltó.");
             // Devolvemos un DTO con mensaje de error (o puedes lanzar excepción y manejarla con ControllerAdvice)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new LoginResponseDto(null, null, null, null, null, null, false, false, "Credenciales inválidas"));
+                    .body(new LoginResponseDto(null, null, null, null, null, null, null,false, false, "Credenciales inválidas"));
         }
 
         // 2. Obtener Usuario
@@ -89,7 +89,7 @@ public class AuthController {
             // D. Responder "Requiere 2FA" (Sin token, Sin datos de usuario)
             return ResponseEntity.ok(new LoginResponseDto(
                     user.getId(), // Podemos devolver el ID para facilitar el siguiente paso
-                    null, null, null, null, null, true, // isTwoFactorEnabled = true
+                    null, null, null, null, null, null,true, // isTwoFactorEnabled = true
                     true, // requiresTwoFactor = TRUE
                     "Código de verificación enviado al correo."
             ));
@@ -145,6 +145,7 @@ public class AuthController {
                 user.getAvatarUrl(defaultAvatarUrl),
                 user.getFollowingCount(),
                 user.getFollowersCount(),
+                user.getRole().name(),
                 user.isTwoFactorEnabled(),
                 false, // requiresTwoFactor = FALSE
                 "Login exitoso"
@@ -153,6 +154,6 @@ public class AuthController {
 
     // Construye una respuesta de error rápida
     private LoginResponseDto createErrorResponse(String message) {
-        return new LoginResponseDto(null, null, null, null, null, null, false, false, message);
+        return new LoginResponseDto(null, null, null, null, null, null, null,false, false, message);
     }
 }

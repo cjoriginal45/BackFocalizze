@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.models.InteractionType;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.InteractionLogRepository;
 import com.focalizze.Focalizze.services.InteractionLimitService;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,9 +36,12 @@ public class InteractionLimitServiceImpl implements InteractionLimitService {
         LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
         long interactionsToday = interactionLogRepository.countByUserAndCreatedAtAfter(user, startOfToday);
 
+        if (user.isSuspended()) throw new AccessDeniedException("Tu cuenta está suspendida temporalmente.");
+
         if (interactionsToday >= DAILY_INTERACTION_LIMIT) {
             throw new DailyLimitExceededException("Límite diario de 20 interacciones alcanzado.");
         }
+
     }
 
 

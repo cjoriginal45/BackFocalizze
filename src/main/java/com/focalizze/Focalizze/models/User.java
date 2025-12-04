@@ -69,22 +69,16 @@ public class User implements UserDetails {
         }
         return this.avatarUrl;
     }
-
     private Integer dailyThreadsRemaining;
-
     @Enumerated(EnumType.STRING)
     private UserRole role;
-
     private Integer followingCount;
-
     private Integer followersCount;
-
     private Integer dailyInteractionsRemaining;
-
     private LocalDateTime createdAt;
-
     private String resetPasswordToken;
     private LocalDateTime resetPasswordTokenExpiry;
+    private LocalDateTime suspensionEndsAt;
 
     @OneToMany(mappedBy="user")
     private List<SavedThreads> savedThreads;
@@ -146,12 +140,6 @@ public class User implements UserDetails {
         this.mentions = new ArrayList<>();
         this.blockedUser = new ArrayList<>();
         this.blockerUser = new ArrayList<>();
-    }
-
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority(this.getRole().name()));
     }
 
     @Override
@@ -232,5 +220,15 @@ public class User implements UserDetails {
     public int hashCode() {
         // Usa una constante para asegurar que el hash de objetos no persistidos no sea 0.
         return getClass().hashCode();
+    }
+
+    public boolean isSuspended() {
+        return suspensionEndsAt != null && suspensionEndsAt.isAfter(LocalDateTime.now());
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Agregamos "ROLE_" antes del nombre del rol
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.getRole().name()));
     }
 }

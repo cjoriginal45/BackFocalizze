@@ -27,6 +27,7 @@ public class ThreadMapper {
                 thread.getUser().getFollowingCount(),
                 thread.getUser().getFollowersCount(),
                 false,
+                thread.getUser().getRole().name(),
                 thread.getUser().isTwoFactorEnabled()
         );
 
