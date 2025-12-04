@@ -128,12 +128,6 @@ public class User implements UserDetails {
         this.blockerUser = new ArrayList<>();
     }
 
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.singletonList(new SimpleGrantedAuthority(this.getRole().name()));
-    }
-
     @Override
     public String getPassword() {
         return this.password;
@@ -216,5 +210,11 @@ public class User implements UserDetails {
 
     public boolean isSuspended() {
         return suspensionEndsAt != null && suspensionEndsAt.isAfter(LocalDateTime.now());
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        // Agregamos "ROLE_" antes del nombre del rol
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.getRole().name()));
     }
 }
