@@ -23,7 +23,10 @@ public class LoginMapper {
                 user.getAvatarUrl(defaultAvatarUrl),
                 user.getFollowingCount(),
                 user.getFollowersCount(),
-                user.getRole().name()
+                user.getRole().name(),
+                user.isTwoFactorEnabled(),
+                false,
+                "¡Login exitoso!"
         );
     }
 

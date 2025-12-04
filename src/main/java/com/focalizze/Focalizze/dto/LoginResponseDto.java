@@ -7,7 +7,11 @@ public record LoginResponseDto(
         String avatarUrl,
         Integer followingCount,
         Integer followersCount,
-        String role
+        String role,
+        boolean isTwoFactorEnabled,
+        boolean requiresTwoFactor,
+        String message
+
 ) {
 
 }

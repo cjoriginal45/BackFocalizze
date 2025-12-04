@@ -80,7 +80,8 @@ public class UserServiceImpl implements UserService {
                 profileUser.getFollowingCount(),
                 profileUser.getFollowersCount(),
                 isBlocked,
-                profileUser.getRole().name()
+                profileUser.getRole().name(),
+                profileUser.isTwoFactorEnabled()
         );
     }
 
@@ -98,8 +99,8 @@ public class UserServiceImpl implements UserService {
                 user.getFollowingCount(),
                 user.getFollowersCount(),
                 false,
-                user.getRole().name()
-
+                user.getRole().name(),
+                user.isTwoFactorEnabled()
         );
     }
 }
