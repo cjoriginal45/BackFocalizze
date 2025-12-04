@@ -52,12 +52,18 @@ public class AuthController {
     // --- PASO 1: LOGIN ---
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto request) {
+
+        System.out.println(">>> LOGIN INTENTO DESDE FRONTEND <<<");
+        System.out.println("Username recibido: '" + request.identifier() + "'");
+        System.out.println("Password recibido: '" + request.password() + "'");
+
         // 1. Validar Credenciales
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.identifier(), request.password())
             );
         } catch (BadCredentialsException e) {
+            System.out.println(">>> ERROR: BadCredentialsException saltó.");
             // Devolvemos un DTO con mensaje de error (o puedes lanzar excepción y manejarla con ControllerAdvice)
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(new LoginResponseDto(null, null, null, null, null, null, false, false, "Credenciales inválidas"));
@@ -78,7 +84,7 @@ public class AuthController {
             userRepository.save(user);
 
             // C. Enviar Email
-            emailService.sendTwoFactorCode(user.getUsername(), code);
+            emailService.sendTwoFactorCode(user.getEmail(), code);
 
             // D. Responder "Requiere 2FA" (Sin token, Sin datos de usuario)
             return ResponseEntity.ok(new LoginResponseDto(

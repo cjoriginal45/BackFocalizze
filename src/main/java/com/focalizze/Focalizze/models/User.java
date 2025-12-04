@@ -41,10 +41,12 @@ public class User implements UserDetails {
 
     // CAMPO 1: Para la verificación en 2 pasos
     @Column(nullable = false)
+    @Builder.Default
     private boolean isTwoFactorEnabled = false;
 
     // CAMPO 2: Para invalidar tokens (Logout masivo)
     @Column(nullable = false)
+    @Builder.Default
     private Integer tokenVersion = 0;
 
     private String twoFactorCode; // El código de 6 dígitos
