@@ -47,6 +47,7 @@ public class SecurityConfig {
                         // A. RUTAS PÚBLICAS (Sin Token)
                         // Autenticación, Registro y 2FA
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/ws/**").permitAll()
 
                         // Imágenes y recursos estáticos
                         .requestMatchers("/images/**", "/api/profiles/avatars/**").permitAll()
