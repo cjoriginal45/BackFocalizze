@@ -1,9 +1,6 @@
 package com.focalizze.Focalizze.services;
 
-import com.focalizze.Focalizze.dto.FeedThreadDto;
-import com.focalizze.Focalizze.dto.ThreadRequestDto;
-import com.focalizze.Focalizze.dto.ThreadResponseDto;
-import com.focalizze.Focalizze.dto.ThreadUpdateRequestDto;
+import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.models.User;
 
 import java.time.LocalDateTime;
