@@ -1,20 +1,11 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
-import com.focalizze.Focalizze.dto.FeedThreadDto;
-import com.focalizze.Focalizze.dto.ThreadRequestDto;
-import com.focalizze.Focalizze.dto.ThreadResponseDto;
-import com.focalizze.Focalizze.dto.ThreadUpdateRequestDto;
+import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
 import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
 import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
-import com.focalizze.Focalizze.models.CategoryClass;
-import com.focalizze.Focalizze.models.Post;
-import com.focalizze.Focalizze.models.ThreadClass;
-import com.focalizze.Focalizze.models.User;
-import com.focalizze.Focalizze.repository.CategoryRepository;
-import com.focalizze.Focalizze.repository.SavedThreadRepository;
-import com.focalizze.Focalizze.repository.ThreadRepository;
-import com.focalizze.Focalizze.repository.UserRepository;
+import com.focalizze.Focalizze.models.*;
+import com.focalizze.Focalizze.repository.*;
 import com.focalizze.Focalizze.services.MentionService;
 import com.focalizze.Focalizze.services.ThreadService;
 import lombok.RequiredArgsConstructor;
@@ -53,6 +44,7 @@ public class ThreadServiceImpl implements ThreadService {
         return Math.max(0, DAILY_THREAD_LIMIT - (int) threadsCreatedToday);
     }
 
+
     //Logica de negocio para crear un hilo
     //Business logic to create a thread
     @Override
@@ -86,7 +78,7 @@ public class ThreadServiceImpl implements ThreadService {
                 .isPublished(!isScheduled)
                 .publishedAt(publicationTime)
                 .scheduledTime(requestDto.scheduledTime())
-                .isDeleted(false) // Nace vivo
+                .isDeleted(false)
                 .likeCount(0)
                 .commentCount(0)
                 .saveCount(0)
