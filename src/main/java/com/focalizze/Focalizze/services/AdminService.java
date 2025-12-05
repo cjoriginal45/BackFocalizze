@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.services;
 
+import com.focalizze.Focalizze.dto.AdminThreadActionDto;
 import com.focalizze.Focalizze.dto.ReportResponseDto;
 import com.focalizze.Focalizze.dto.SuspendRequestDto;
 import com.focalizze.Focalizze.models.Report;
@@ -11,5 +12,9 @@ public interface AdminService {
     Page<ReportResponseDto> getPendingReports(Pageable pageable);
 
     void processReport(SuspendRequestDto request);
+
+    Page<ReportResponseDto> getPendingThreadReports(Pageable pageable);
+
+    void processThreadReport(AdminThreadActionDto request);
 
 }

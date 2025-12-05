@@ -12,6 +12,8 @@ public record ReportResponseDto(
         String reportedAvatarUrl,
         ReportReason reason,
         String description,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long reportedThreadId,
+        String reportedThreadPreview
 ) {
 }
