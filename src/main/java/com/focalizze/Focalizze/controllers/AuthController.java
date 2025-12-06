@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,9 +54,35 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto request) {
 
-        System.out.println(">>> LOGIN INTENTO DESDE FRONTEND <<<");
-        System.out.println("Username recibido: '" + request.identifier() + "'");
-        System.out.println("Password recibido: '" + request.password() + "'");
+        try {
+            // Esto ahora llama internamente a user.isAccountNonLocked()
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.identifier(), request.password())
+            );
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(createErrorResponse("Credenciales inválidas"));
+
+        } catch (LockedException e) {
+            // --- CAPTURAMOS EL BANEO AQUÍ ---
+
+            // Buscamos al usuario para darle detalles del baneo
+            User user = userRepository.findByUsername(request.identifier())
+                    .orElse(null); // Si llegó acá, el usuario existe, pero por seguridad...
+
+            String msg = "Tu cuenta ha sido suspendida.";
+
+            if (user != null) {
+                if (user.getBanExpiresAt() == null) {
+                    msg = "Tu cuenta ha sido suspendida permanentemente. Motivo: " + user.getBanReason();
+                } else {
+                    msg = "Suspensión hasta: " + user.getBanExpiresAt().toString() + ". Motivo: " + user.getBanReason();
+                }
+            }
+
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse(msg));
+        }
 
         // 1. Validar Credenciales
         try {

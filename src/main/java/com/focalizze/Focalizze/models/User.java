@@ -166,7 +166,21 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        // 1. Si no está baneado, la cuenta NO está bloqueada (return true)
+        if (!this.isBanned) {
+            return true;
+        }
+
+        // 2. Si está baneado, verificamos si es permanente o si ya expiró el tiempo
+        if (this.banExpiresAt == null) {
+            // Es permanente, así que la cuenta SÍ está bloqueada (return false)
+            return false;
+        }
+
+        // 3. Si tiene fecha de fin, verificamos si ya pasó esa fecha
+        // Si HOY es después de la fecha de expiración, desbloqueamos (true).
+        // Si no, sigue bloqueada (false).
+        return LocalDateTime.now().isAfter(this.banExpiresAt);
     }
 
     @Override
@@ -178,6 +192,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 
     public User(Long id, String username, String email, String password) {
         this.id = id;
