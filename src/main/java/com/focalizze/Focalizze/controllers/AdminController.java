@@ -39,4 +39,10 @@ public class AdminController {
         adminService.processReport(request);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/delete/{username}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable String username){
+        adminService.deleteAdmin(username);
+        return ResponseEntity.ok().build();
+    }
 }
