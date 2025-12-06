@@ -75,4 +75,10 @@ public class AdminController {
                     .body(Map.of("message", e.getMessage()));
         }
     }
+
+    @DeleteMapping("/delete/{username}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable String username){
+        adminService.deleteAdmin(username);
+        return ResponseEntity.ok().build();
+    }
 }

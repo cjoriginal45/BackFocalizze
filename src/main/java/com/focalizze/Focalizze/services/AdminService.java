@@ -20,4 +20,5 @@ public interface AdminService {
     void processThreadReport(AdminThreadActionDto request);
 
     void promoteUserToAdmin(PromoteAdminDto dto, User currentAdmin);
+    void deleteAdmin(String username);
 }
