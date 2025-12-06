@@ -1,9 +1,6 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
-import com.focalizze.Focalizze.dto.AdminThreadActionDto;
-import com.focalizze.Focalizze.dto.PromoteAdminDto;
-import com.focalizze.Focalizze.dto.ReportResponseDto;
-import com.focalizze.Focalizze.dto.SuspendRequestDto;
+import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.models.*;
 import com.focalizze.Focalizze.repository.ReportRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
@@ -117,17 +114,6 @@ public class AdminServiceImpl implements AdminService {
         reportRepository.save(report);
     }
 
-    @Override
-    public void deleteAdmin(String username) {
-        User user = userRepository.findByUsername(username).
-                orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-
-        if(user.getRole().equals(UserRole.ADMIN)){
-            user.setRole(UserRole.USER);
-            userRepository.save(user);
-        }
-    }
-
     // --- MAPPER COMÚN ---
 
     private ReportResponseDto mapToDto(Report report) {
@@ -181,6 +167,32 @@ public class AdminServiceImpl implements AdminService {
 
         // 4. Actualizar el rol
         targetUser.setRole(UserRole.ADMIN);
+        userRepository.save(targetUser);
+    }
+
+    @Transactional
+    public void revokeAdminRole(RevokeAdminDto dto, User currentAdmin) {
+        // 1. SEGURIDAD: Validar contraseña del admin que ejecuta la acción
+        if (!passwordEncoder.matches(dto.adminPassword(), currentAdmin.getPassword())) {
+            throw new BadCredentialsException("La contraseña del administrador es incorrecta.");
+        }
+
+        // 2. Buscar al usuario objetivo
+        User targetUser = userRepository.findByUsername(dto.targetUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("El usuario @" + dto.targetUsername() + " no existe."));
+
+        // 3. Validar que NO sea el mismo admin (Opcional, para evitar auto-eliminación accidental)
+        if (targetUser.getId().equals(currentAdmin.getId())) {
+            throw new IllegalStateException("No puedes quitarte el rol de administrador a ti mismo desde esta pantalla.");
+        }
+
+        // 4. Validar que sea ADMIN
+        if (!targetUser.getRole().equals(UserRole.ADMIN)) {
+            throw new IllegalStateException("El usuario @" + targetUser.getUsername() + " no es Administrador.");
+        }
+
+        // 5. Ejecutar acción (Downgrade)
+        targetUser.setRole(UserRole.USER);
         userRepository.save(targetUser);
     }
 }
