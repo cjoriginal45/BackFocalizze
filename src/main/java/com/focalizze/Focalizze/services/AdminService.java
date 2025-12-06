@@ -19,4 +19,6 @@ public interface AdminService {
     void promoteUserToAdmin(PromoteAdminDto dto, User currentAdmin);
 
     void revokeAdminRole(RevokeAdminDto dto, User currentAdmin);
+
+    void banUser(BanUserRequestDto dto, User currentAdmin);
 }

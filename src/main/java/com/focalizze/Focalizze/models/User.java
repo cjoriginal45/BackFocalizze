@@ -59,7 +59,7 @@ public class User implements UserDetails {
     private boolean isBanned = false;
 
     private LocalDateTime banExpiresAt;
-    
+
     private String banReason;
 
     /**

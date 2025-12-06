@@ -195,4 +195,44 @@ public class AdminServiceImpl implements AdminService {
         targetUser.setRole(UserRole.USER);
         userRepository.save(targetUser);
     }
+
+    @Override
+    @Transactional
+    public void banUser(BanUserRequestDto dto, User currentAdmin) {
+        // 1. SEGURIDAD: Validar contraseña del admin
+        if (!passwordEncoder.matches(dto.adminPassword(), currentAdmin.getPassword())) {
+            throw new BadCredentialsException("La contraseña del administrador es incorrecta.");
+        }
+
+        // 2. Buscar al usuario objetivo
+        User targetUser = userRepository.findByUsername(dto.targetUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("El usuario @" + dto.targetUsername() + " no existe."));
+
+        // 3. Evitar banearse a sí mismo o a otro admin
+        if (targetUser.getId().equals(currentAdmin.getId())) {
+            throw new IllegalStateException("No puedes banearte a ti mismo.");
+        }
+        if (targetUser.getRole() == UserRole.ADMIN) {
+            throw new IllegalStateException("No se puede banear a un Administrador. Primero revoca su rol.");
+        }
+
+        // 4. Calcular duración
+        LocalDateTime expirationDate = null;
+        switch (dto.duration().toUpperCase()) {
+            case "WEEK" -> expirationDate = LocalDateTime.now().plusWeeks(1);
+            case "MONTH" -> expirationDate = LocalDateTime.now().plusMonths(1);
+            case "PERMANENT" -> expirationDate = null; // Null representa permanente
+            default -> throw new IllegalArgumentException("Duración no válida.");
+        }
+
+        // 5. Aplicar Baneo
+        targetUser.setBanned(true);
+        targetUser.setBanExpiresAt(expirationDate);
+        targetUser.setBanReason(dto.reason());
+
+        // Opcional: Forzar cierre de sesión (incrementar tokenVersion)
+        targetUser.setTokenVersion(targetUser.getTokenVersion() + 1);
+
+        userRepository.save(targetUser);
+    }
 }
