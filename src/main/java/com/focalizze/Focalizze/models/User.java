@@ -56,6 +56,12 @@ public class User implements UserDetails {
     @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
     private Integer calculatedThreadCount;
 
+    private boolean isBanned = false;
+
+    private LocalDateTime banExpiresAt;
+    
+    private String banReason;
+
     /**
      * Este método devuelve la URL del avatar del usuario.
      * Si el usuario no ha subido un avatar (avatarUrl es null),
