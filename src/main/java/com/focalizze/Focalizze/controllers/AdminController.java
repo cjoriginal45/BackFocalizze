@@ -40,9 +40,9 @@ public class AdminController {
         return ResponseEntity.ok().build();
     }
 
-    @PostMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteAdmin(@PathVariable Long id){
-        adminService.deleteAdmin(id);
+    @DeleteMapping("/delete/{username}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable String username){
+        adminService.deleteAdmin(username);
         return ResponseEntity.ok().build();
     }
 }

@@ -113,8 +113,8 @@ public class AdminServiceImpl implements AdminService {
     }
 
     @Override
-    public void deleteAdmin(Long id) {
-        User user = userRepository.findById(id).
+    public void deleteAdmin(String username) {
+        User user = userRepository.findByUsername(username).
                 orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
 
         if(user.getRole().equals(UserRole.ADMIN)){
