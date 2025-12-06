@@ -1,6 +1,7 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
 import com.focalizze.Focalizze.dto.AdminThreadActionDto;
+import com.focalizze.Focalizze.dto.PromoteAdminDto;
 import com.focalizze.Focalizze.dto.ReportResponseDto;
 import com.focalizze.Focalizze.dto.SuspendRequestDto;
 import com.focalizze.Focalizze.models.*;
@@ -12,6 +13,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +28,7 @@ public class AdminServiceImpl implements AdminService {
 
     private final ReportRepository reportRepository;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${app.default-avatar-url}")
     private String defaultAvatarUrl;
@@ -144,5 +149,27 @@ public class AdminServiceImpl implements AdminService {
                 threadId,       // Nuevo campo: ID del hilo (puede ser null)
                 threadPreview   // Nuevo campo: Preview del texto (puede ser null)
         );
+    }
+
+    @Override
+    @Transactional
+    public void promoteUserToAdmin(PromoteAdminDto dto, User currentAdmin) {
+        // 1. Validar que la contraseña del Admin actual sea correcta
+        if (!passwordEncoder.matches(dto.adminPassword(), currentAdmin.getPassword())) {
+            throw new BadCredentialsException("La contraseña del administrador es incorrecta.");
+        }
+
+        // 2. Buscar al usuario objetivo (el que será promovido)
+        User targetUser = userRepository.findByUsername(dto.targetUsername())
+                .orElseThrow(() -> new UsernameNotFoundException("El usuario @" + dto.targetUsername() + " no existe."));
+
+        // 3. Validar si ya es admin
+        if (targetUser.getRole() == UserRole.ADMIN) {
+            throw new IllegalStateException("El usuario @" + targetUser.getUsername() + " ya es Administrador.");
+        }
+
+        // 4. Actualizar el rol
+        targetUser.setRole(UserRole.ADMIN);
+        userRepository.save(targetUser);
     }
 }
