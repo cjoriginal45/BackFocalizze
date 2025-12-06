@@ -1,9 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
-import com.focalizze.Focalizze.dto.AdminThreadActionDto;
-import com.focalizze.Focalizze.dto.PromoteAdminDto;
-import com.focalizze.Focalizze.dto.ReportResponseDto;
-import com.focalizze.Focalizze.dto.SuspendRequestDto;
+import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.AdminService;
 import jakarta.validation.Valid;
@@ -76,9 +73,26 @@ public class AdminController {
         }
     }
 
-    @DeleteMapping("/delete/{username}")
-    public ResponseEntity<Void> deleteAdmin(@PathVariable String username){
-        adminService.deleteAdmin(username);
-        return ResponseEntity.ok().build();
+    @PostMapping("/revoke")
+    public ResponseEntity<?> revokeAdminRole(
+            @Valid @RequestBody RevokeAdminDto request,
+            @AuthenticationPrincipal User currentAdmin
+    ) {
+        try {
+            adminService.revokeAdminRole(request, currentAdmin);
+            return ResponseEntity.ok().build();
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("message", e.getMessage()));
+
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("message", e.getMessage()));
+
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", e.getMessage()));
+        }
     }
 }
