@@ -95,4 +95,22 @@ public class AdminController {
                     .body(Map.of("message", e.getMessage()));
         }
     }
+
+    @PostMapping("/ban")
+    public ResponseEntity<?> banUser(
+            @Valid @RequestBody BanUserRequestDto request,
+            @AuthenticationPrincipal User currentAdmin
+    ) {
+        try {
+            adminService.banUser(request, currentAdmin);
+            return ResponseEntity.ok().build();
+
+        } catch (BadCredentialsException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", e.getMessage()));
+        } catch (UsernameNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
+        } catch (IllegalStateException | IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+        }
+    }
 }

@@ -56,6 +56,12 @@ public class User implements UserDetails {
     @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
     private Integer calculatedThreadCount;
 
+    private boolean isBanned = false;
+
+    private LocalDateTime banExpiresAt;
+
+    private String banReason;
+
     /**
      * Este método devuelve la URL del avatar del usuario.
      * Si el usuario no ha subido un avatar (avatarUrl es null),
@@ -160,7 +166,21 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        return true;
+        // 1. Si no está baneado, la cuenta NO está bloqueada (return true)
+        if (!this.isBanned) {
+            return true;
+        }
+
+        // 2. Si está baneado, verificamos si es permanente o si ya expiró el tiempo
+        if (this.banExpiresAt == null) {
+            // Es permanente, así que la cuenta SÍ está bloqueada (return false)
+            return false;
+        }
+
+        // 3. Si tiene fecha de fin, verificamos si ya pasó esa fecha
+        // Si HOY es después de la fecha de expiración, desbloqueamos (true).
+        // Si no, sigue bloqueada (false).
+        return LocalDateTime.now().isAfter(this.banExpiresAt);
     }
 
     @Override
@@ -172,6 +192,7 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
 
     public User(Long id, String username, String email, String password) {
         this.id = id;

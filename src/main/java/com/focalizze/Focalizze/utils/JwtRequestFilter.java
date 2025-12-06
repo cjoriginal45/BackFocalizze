@@ -52,6 +52,17 @@ public class JwtRequestFilter extends OncePerRequestFilter {
 
             // Valida incluyendo la versión del token
             if (jwtUtil.validateToken(jwt, userDetails)) {
+
+                // --- SEGURIDAD EXTRA: Rechazar si está baneado ---
+                if (!userDetails.isAccountNonLocked()) {
+                    // El usuario está baneado, no permitimos la autenticación
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Account is banned");
+                    return;
+                }
+
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+
                 UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
                         userDetails, null, userDetails.getAuthorities());
                 usernamePasswordAuthenticationToken
