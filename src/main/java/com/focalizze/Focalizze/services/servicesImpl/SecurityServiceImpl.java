@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.SecurityService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SecurityServiceImpl implements SecurityService {
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Override
     @Transactional
@@ -39,5 +41,12 @@ public class SecurityServiceImpl implements SecurityService {
         user.setTokenVersion(user.getTokenVersion() + 1);
 
         userRepository.save(user);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean validatePassword(String rawPassword, User currentUser) {
+        // Obtenemos la contraseña real (hasheada) de la DB o del contexto
+        return passwordEncoder.matches(rawPassword, currentUser.getPassword());
     }
 }
