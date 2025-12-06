@@ -39,4 +39,10 @@ public class AdminController {
         adminService.processReport(request);
         return ResponseEntity.ok().build();
     }
+
+    @PostMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteAdmin(@PathVariable Long id){
+        adminService.deleteAdmin(id);
+        return ResponseEntity.ok().build();
+    }
 }

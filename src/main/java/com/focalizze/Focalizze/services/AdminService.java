@@ -17,4 +17,5 @@ public interface AdminService {
 
     void processThreadReport(AdminThreadActionDto request);
 
+    void deleteAdmin(Long id);
 }

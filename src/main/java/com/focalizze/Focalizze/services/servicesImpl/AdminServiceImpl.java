@@ -112,6 +112,17 @@ public class AdminServiceImpl implements AdminService {
         reportRepository.save(report);
     }
 
+    @Override
+    public void deleteAdmin(Long id) {
+        User user = userRepository.findById(id).
+                orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        if(user.getRole().equals(UserRole.ADMIN)){
+            user.setRole(UserRole.USER);
+            userRepository.save(user);
+        }
+    }
+
     // --- MAPPER COMÚN ---
 
     private ReportResponseDto mapToDto(Report report) {
