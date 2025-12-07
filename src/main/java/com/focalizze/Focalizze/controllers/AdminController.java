@@ -3,11 +3,15 @@ package com.focalizze.Focalizze.controllers;
 import com.focalizze.Focalizze.dto.*;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.AdminService;
+import com.focalizze.Focalizze.services.BackupService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,6 +19,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.ByteArrayInputStream;
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
@@ -23,6 +29,7 @@ import java.util.Map;
 @PreAuthorize("hasRole('ROLE_ADMIN')")
 public class AdminController {
     private final AdminService adminService;
+    private final BackupService backupService;
 
     @GetMapping("/reports/users") // Endpoint específico para usuarios
     public ResponseEntity<Page<ReportResponseDto>> getUserReports(Pageable pageable) {
@@ -111,6 +118,28 @@ public class AdminController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", e.getMessage()));
         } catch (IllegalStateException | IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/backup/download")
+    public ResponseEntity<InputStreamResource> downloadBackup() {
+        try {
+            ByteArrayInputStream in = backupService.generateExcelBackup();
+
+            String filename = "focalizze_data_" + LocalDate.now() + ".xlsx";
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.add("Content-Disposition", "attachment; filename=" + filename);
+
+            return ResponseEntity
+                    .ok()
+                    .headers(headers)
+                    .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                    .body(new InputStreamResource(in));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
     }
 }
