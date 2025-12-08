@@ -71,7 +71,9 @@ public class CommentMapper {
                 user.getFollowersCount(),
                 false,
                 user.getRole().name(),
-                user.isTwoFactorEnabled()
+                user.isTwoFactorEnabled(),
+                user.getBackgroundType(),
+                user.getBackgroundValue()
         );
     }
 }

@@ -28,7 +28,9 @@ public class ThreadMapper {
                 thread.getUser().getFollowersCount(),
                 false,
                 thread.getUser().getRole().name(),
-                thread.getUser().isTwoFactorEnabled()
+                thread.getUser().isTwoFactorEnabled(),
+                thread.getUser().getBackgroundType(),
+                thread.getUser().getBackgroundValue()
         );
 
         StatsDto statsDto = new StatsDto(
