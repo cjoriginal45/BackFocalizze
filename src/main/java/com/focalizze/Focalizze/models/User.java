@@ -62,6 +62,13 @@ public class User implements UserDetails {
 
     private String banReason;
 
+    @Column(name = "background_type")
+    private String backgroundType = "default";
+
+    @Column(name = "background_value")
+    private String backgroundValue;
+
+
     /**
      * Este método devuelve la URL del avatar del usuario.
      * Si el usuario no ha subido un avatar (avatarUrl es null),
