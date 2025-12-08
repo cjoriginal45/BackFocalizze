@@ -11,7 +11,9 @@ public record UserDto(
         Integer followersCount,
         boolean isBlocked,
         String role,
-        boolean isTwoFactorEnabled
+        boolean isTwoFactorEnabled,
+        String backgroundType,
+        String backgroundValue
 
 ) {
 

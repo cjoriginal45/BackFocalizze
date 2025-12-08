@@ -81,7 +81,9 @@ public class UserServiceImpl implements UserService {
                 profileUser.getFollowersCount(),
                 isBlocked,
                 profileUser.getRole().name(),
-                profileUser.isTwoFactorEnabled()
+                profileUser.isTwoFactorEnabled(),
+                profileUser.getBackgroundType(),
+                profileUser.getBackgroundValue()
         );
     }
 
@@ -100,7 +102,9 @@ public class UserServiceImpl implements UserService {
                 user.getFollowersCount(),
                 false,
                 user.getRole().name(),
-                user.isTwoFactorEnabled()
+                user.isTwoFactorEnabled(),
+                user.getBackgroundType(),
+                user.getBackgroundValue()
         );
     }
 }

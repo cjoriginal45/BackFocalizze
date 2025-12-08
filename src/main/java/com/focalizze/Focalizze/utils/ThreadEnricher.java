@@ -108,7 +108,9 @@ public class ThreadEnricher {
                     baseDto.user().followersCount(),
                     isBlocked,
                     baseDto.user().role(),
-                    baseDto.user().isTwoFactorEnabled()
+                    baseDto.user().isTwoFactorEnabled(),
+                    baseDto.user().backgroundType(),
+                    baseDto.user().backgroundValue()
             );
 
             // f. Creamos el FeedThreadDto final con todos los datos enriquecidos.
