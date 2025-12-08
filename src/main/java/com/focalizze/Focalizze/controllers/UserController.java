@@ -1,6 +1,7 @@
 package com.focalizze.Focalizze.controllers;
 
 import com.focalizze.Focalizze.dto.BlockedUserDto;
+import com.focalizze.Focalizze.dto.UpdateThemeDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.UserSummaryDto;
 import com.focalizze.Focalizze.models.User;
@@ -96,5 +97,12 @@ public class UserController {
     @GetMapping("/blocked")
     public ResponseEntity<List<BlockedUserDto>> getBlockedUsersList() {
         return ResponseEntity.ok(blockService.getBlockedUsers());
+    }
+
+    @PatchMapping("/me/theme")
+    public ResponseEntity<Void> updateTheme(@RequestBody UpdateThemeDto dto) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        userService.updateThemePreferences(username, dto);
+        return ResponseEntity.ok().build();
     }
 }
