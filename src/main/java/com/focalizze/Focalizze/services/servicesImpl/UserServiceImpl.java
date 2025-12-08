@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.services.servicesImpl;
 
+import com.focalizze.Focalizze.dto.UpdateThemeDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.BlockRepository;
@@ -107,4 +108,16 @@ public class UserServiceImpl implements UserService {
                 user.getBackgroundValue()
         );
     }
+
+    @Override
+    public void updateThemePreferences(String username, UpdateThemeDto dto) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        user.setBackgroundType(dto.backgroundType());
+        user.setBackgroundValue(dto.backgroundValue());
+
+        userRepository.save(user);
+    }
+
 }
