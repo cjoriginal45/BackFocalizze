@@ -16,19 +16,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/threads/{threadId}/comments")
+@RequestMapping("/api")
 @RequiredArgsConstructor
 public class CommentController {
     private final CommentService commentService;
 
-    @GetMapping
+    @GetMapping("/threads/{threadId}/comments")
     public ResponseEntity<Page<CommentResponseDto>> getComments(
             @PathVariable Long threadId,
             @PageableDefault(size = 20) Pageable pageable) {
         return ResponseEntity.ok(commentService.getCommentsByThread(threadId, pageable));
     }
 
-    @PostMapping
+    @PostMapping("/threads/{threadId}/comments")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CommentResponseDto> createComment(
             @PathVariable Long threadId,
@@ -37,4 +37,21 @@ public class CommentController {
         CommentResponseDto createdComment = commentService.createComment(threadId, commentRequestDto, currentUser);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
     }
+
+    @PatchMapping("/comments/{commentId}")
+    public ResponseEntity<CommentResponseDto> editComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentRequestDto commentRequestDto){
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CommentResponseDto editedComment = commentService.editComment(commentId,commentRequestDto,currentUser);
+        return ResponseEntity.ok(editedComment);
+    }
+
+    @DeleteMapping("/comments/{commentId}")
+    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        commentService.deleteComment(commentId, currentUser);
+        return ResponseEntity.noContent().build();
+    }
+
 }

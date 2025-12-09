@@ -2,7 +2,9 @@ package com.focalizze.Focalizze.services.servicesImpl;
 
 import com.focalizze.Focalizze.dto.CommentRequestDto;
 import com.focalizze.Focalizze.dto.CommentResponseDto;
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.mappers.CommentMapper;
+import com.focalizze.Focalizze.dto.mappers.UserMapper;
 import com.focalizze.Focalizze.models.*;
 import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.CommentRepository;
@@ -35,6 +37,7 @@ public class CommentServiceImpl  implements CommentService {
     private final NotificationService notificationService;
     private final BlockRepository blockRepository;
     private final UserRepository userRepository;
+    private final UserMapper userMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -131,5 +134,25 @@ public class CommentServiceImpl  implements CommentService {
         if (commentToDelete.getCreatedAt().isAfter(startOfToday)) {
             interactionLimitService.refundInteraction(currentUser, InteractionType.COMMENT);
         }
+    }
+
+    @Override
+    @Transactional
+    public CommentResponseDto editComment(Long commentId, CommentRequestDto commentRequestDto, User currentUser) {
+        // Buscar comentario y verificar dueño
+        CommentClass commentToEdit = commentRepository.findByIdAndUser(commentId, currentUser)
+                .orElseThrow(() -> new RuntimeException("Comentario no encontrado o no tienes permiso para eliminarlo. ID: " + commentId));
+
+        // Verificar si está borrado lógicamente
+        if (commentToEdit.isDeleted()) {
+            throw new RuntimeException("No se puede editar un comentario que ha sido eliminado.");
+        }
+
+        // Actualizar contenido
+        commentToEdit.setContent(commentRequestDto.content());
+        CommentClass savedComment = commentRepository.save(commentToEdit);
+
+        // Devolver el DTO mapeado desde la entidad real
+        return commentMapper.toCommentResponseDto(savedComment);
     }
 }

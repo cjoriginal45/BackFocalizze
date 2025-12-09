@@ -1,5 +1,9 @@
 package com.focalizze.Focalizze.dto;
 
+import jakarta.persistence.Column;
+import org.springframework.stereotype.Component;
+
+
 public record UserDto(
         Long id,
         String username,
