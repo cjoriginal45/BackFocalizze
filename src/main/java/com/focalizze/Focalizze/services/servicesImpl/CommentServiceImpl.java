@@ -152,9 +152,6 @@ public class CommentServiceImpl  implements CommentService {
         commentToEdit.setContent(commentRequestDto.content());
         CommentClass savedComment = commentRepository.save(commentToEdit);
 
-        // Lógica de Interacciones
-        interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
-
         // Devolver el DTO mapeado desde la entidad real
         return commentMapper.toCommentResponseDto(savedComment);
     }
