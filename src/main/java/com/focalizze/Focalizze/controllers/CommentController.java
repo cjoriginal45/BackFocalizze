@@ -37,4 +37,14 @@ public class CommentController {
         CommentResponseDto createdComment = commentService.createComment(threadId, commentRequestDto, currentUser);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
     }
+
+    @PatchMapping
+    public ResponseEntity<CommentResponseDto> editComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentRequestDto commentRequestDto){
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CommentRequestDto editedComment = commentService.editComment(commentId,commentRequestDto,currentUser);
+        return ResponseEntity.ok().build();
+    }
+
 }
