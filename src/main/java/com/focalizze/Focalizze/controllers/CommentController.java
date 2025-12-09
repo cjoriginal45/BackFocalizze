@@ -43,7 +43,7 @@ public class CommentController {
             @PathVariable Long commentId,
             @Valid @RequestBody CommentRequestDto commentRequestDto){
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        CommentRequestDto editedComment = commentService.editComment(commentId,commentRequestDto,currentUser);
+        CommentResponseDto editedComment = commentService.editComment(commentId,commentRequestDto,currentUser);
         return ResponseEntity.ok().build();
     }
 
