@@ -137,22 +137,25 @@ public class CommentServiceImpl  implements CommentService {
     }
 
     @Override
+    @Transactional
     public CommentResponseDto editComment(Long commentId, CommentRequestDto commentRequestDto, User currentUser) {
+        // Buscar comentario y verificar dueño
         CommentClass commentToEdit = commentRepository.findByIdAndUser(commentId, currentUser)
                 .orElseThrow(() -> new RuntimeException("Comentario no encontrado o no tienes permiso para eliminarlo. ID: " + commentId));
 
-        ThreadClass thread = commentToEdit.getThread();
-
-        if(!commentToEdit.isDeleted()){
-            commentToEdit.setContent(commentRequestDto.content());
-            commentRepository.save(commentToEdit);
-
-            thread.setCommentCount(Math.max(0, thread.getCommentCount() - 1));
-            threadRepository.save(thread);
-
-            interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
+        // Verificar si está borrado lógicamente
+        if (commentToEdit.isDeleted()) {
+            throw new RuntimeException("No se puede editar un comentario que ha sido eliminado.");
         }
 
-        return new CommentResponseDto(commentId,commentRequestDto.content(),LocalDateTime.now(), userMapper.toDto(currentUser));
+        // Actualizar contenido
+        commentToEdit.setContent(commentRequestDto.content());
+        CommentClass savedComment = commentRepository.save(commentToEdit);
+
+        // Lógica de Interacciones
+        interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
+
+        // Devolver el DTO mapeado desde la entidad real
+        return commentMapper.toCommentResponseDto(savedComment);
     }
 }
