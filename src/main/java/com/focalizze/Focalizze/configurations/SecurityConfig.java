@@ -48,7 +48,6 @@ public class SecurityConfig {
                         // Autenticación, Registro y 2FA
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
-
                         // Imágenes y recursos estáticos
                         .requestMatchers("/images/**", "/api/profiles/avatars/**").permitAll()
 
@@ -61,7 +60,7 @@ public class SecurityConfig {
                                 "/api/threads/*/comments"
                         ).permitAll()
 
-                        // C. TODO LO DEMÁS REQUIERE LOGIN
+                        .requestMatchers("/api/comments/**").authenticated()
                         .anyRequest().authenticated()
                 )
 

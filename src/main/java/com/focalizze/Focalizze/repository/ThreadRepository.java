@@ -38,7 +38,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             "AND (" +
             "    t.user.id IN :followedUserIds " +
             "    OR t.category.id IN :followedCategoryIds " +
-            "    OR t.user.id = :currentUserId" + // <-- AGREGADO: Para ver tus propios hilos
+            "    OR t.user.id = :currentUserId" +
             ") " +
             "AND t.user.id NOT IN :blockedUserIds " +
             "ORDER BY t.publishedAt DESC",
@@ -46,7 +46,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
                     "WHERE t.isPublished = true AND t.isDeleted = false " +
                     "AND (t.user.id IN :followedUserIds " +
                     "OR t.category.id IN :followedCategoryIds " +
-                    "OR t.user.id = :currentUserId)" + // <-- AGREGADO
+                    "OR t.user.id = :currentUserId)" +
                     "AND t.user.id NOT IN :blockedUserIds")
     Page<ThreadClass> findFollowingFeed(
             @Param("followedUserIds") List<Long> followedUserIds,

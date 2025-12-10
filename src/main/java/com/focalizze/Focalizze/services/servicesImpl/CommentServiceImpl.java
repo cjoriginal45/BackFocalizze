@@ -58,7 +58,7 @@ public class CommentServiceImpl  implements CommentService {
         if (allBlockedIds.isEmpty()) {
             comments = commentRepository.findActiveCommentsByThread(thread, pageable);
         } else {
-            comments = commentRepository.findActiveCommentsByThreadAndFilterBlocked(thread, allBlockedIds, pageable);
+            comments = commentRepository.findActiveRootCommentsByThreadAndFilterBlocked(thread, allBlockedIds, pageable);
         }
 
         return comments.map(commentMapper::toCommentResponseDto);
@@ -154,5 +154,54 @@ public class CommentServiceImpl  implements CommentService {
 
         // Devolver el DTO mapeado desde la entidad real
         return commentMapper.toCommentResponseDto(savedComment);
+    }
+
+    @Override
+    @Transactional
+    public CommentResponseDto replyToComment(Long parentCommentId, CommentRequestDto request, User currentUser) {
+        // Buscar el comentario padre
+        CommentClass parentComment = commentRepository.findById(parentCommentId)
+                .orElseThrow(() -> new RuntimeException("Comentario padre no encontrado"));
+
+        ThreadClass thread = parentComment.getThread();
+
+        System.out.println("Usuario Logueado ID: " + currentUser.getId());
+        System.out.println("Dueño del Hilo ID: " + thread.getUser().getId());
+
+        // Solo el autor del hilo puede responder
+        if (!thread.getUser().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("Solo el autor del hilo puede responder a los comentarios.");
+        }
+
+        // Validar límites de interacción
+        interactionLimitService.checkInteractionLimit(currentUser);
+
+        // Crear la respuesta
+        CommentClass reply = CommentClass.builder()
+                .content(request.content())
+                .createdAt(LocalDateTime.now())
+                .user(currentUser)
+                .thread(thread)
+                .parent(parentComment) // Establecemos la relación
+                .build();
+
+        CommentClass savedReply = commentRepository.save(reply);
+
+        // Actualizar contadores y registrar interacción
+        thread.setCommentCount(thread.getCommentCount() + 1);
+        threadRepository.save(thread);
+        interactionLimitService.recordInteraction(currentUser, InteractionType.COMMENT);
+
+        // Notificar al autor del comentario original
+        if (!parentComment.getUser().getId().equals(currentUser.getId())) {
+            notificationService.createAndSendNotification(
+                    parentComment.getUser(),
+                    NotificationType.NEW_COMMENT,
+                    currentUser,
+                    thread
+            );
+        }
+
+        return commentMapper.toCommentResponseDto(savedReply);
     }
 }

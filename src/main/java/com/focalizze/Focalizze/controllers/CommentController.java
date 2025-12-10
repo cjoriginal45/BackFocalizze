@@ -54,4 +54,14 @@ public class CommentController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/comments/{commentId}/reply")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<CommentResponseDto> replyToComment(
+            @PathVariable Long commentId,
+            @Valid @RequestBody CommentRequestDto request) {
+        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        CommentResponseDto reply = commentService.replyToComment(commentId, request, currentUser);
+        return new ResponseEntity<>(reply, HttpStatus.CREATED);
+    }
+
 }
