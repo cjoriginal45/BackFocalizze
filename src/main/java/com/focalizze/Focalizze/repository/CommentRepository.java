@@ -34,4 +34,17 @@ public interface CommentRepository extends JpaRepository<CommentClass, Long> {
 
     // Método para encontrar un comentario por su ID y su autor (para seguridad).
     Optional<CommentClass> findByIdAndUser(Long id, User user);
+
+    @Query("SELECT c FROM CommentClass c " +
+            "LEFT JOIN FETCH c.user " +
+            "LEFT JOIN FETCH c.replies r " +
+            "LEFT JOIN FETCH r.user " +
+            "WHERE c.thread = :thread AND c.parent IS NULL AND c.isDeleted = false " +
+            "AND c.user.id NOT IN :blockedUserIds " +
+            "ORDER BY c.createdAt DESC")
+    Page<CommentClass> findActiveRootCommentsByThreadAndFilterBlocked(
+            @Param("thread") ThreadClass thread,
+            @Param("blockedUserIds") Set<Long> blockedUserIds,
+            Pageable pageable
+    );
 }
