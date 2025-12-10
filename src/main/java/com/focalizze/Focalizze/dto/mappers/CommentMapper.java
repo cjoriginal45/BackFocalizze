@@ -8,6 +8,7 @@ import com.focalizze.Focalizze.models.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -34,7 +35,11 @@ public class CommentMapper {
         // We map the comment author information using a helper method.
         UserDto authorDto = mapUserToUserDto(comment.getUser());
 
-        List<CommentResponseDto> replyDtos = comment.getReplies().stream()
+        List<CommentClass> repliesSafe = comment.getReplies() != null
+                ? comment.getReplies()
+                : new ArrayList<>();
+
+        List<CommentResponseDto> replyDtos = repliesSafe.stream()
                 .map(this::toCommentResponseDto)
                 .sorted(Comparator.comparing(CommentResponseDto::createdAt))
                 .toList();

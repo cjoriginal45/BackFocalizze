@@ -54,7 +54,7 @@ public class CommentController {
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/{commentId}/reply")
+    @PostMapping("/comments/{commentId}/reply")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CommentResponseDto> replyToComment(
             @PathVariable Long commentId,

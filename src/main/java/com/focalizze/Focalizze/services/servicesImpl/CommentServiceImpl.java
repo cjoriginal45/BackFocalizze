@@ -165,6 +165,9 @@ public class CommentServiceImpl  implements CommentService {
 
         ThreadClass thread = parentComment.getThread();
 
+        System.out.println("Usuario Logueado ID: " + currentUser.getId());
+        System.out.println("Dueño del Hilo ID: " + thread.getUser().getId());
+
         // Solo el autor del hilo puede responder
         if (!thread.getUser().getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("Solo el autor del hilo puede responder a los comentarios.");
