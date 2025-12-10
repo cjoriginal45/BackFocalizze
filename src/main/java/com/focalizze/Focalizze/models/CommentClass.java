@@ -8,6 +8,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @NoArgsConstructor
 @AllArgsConstructor
@@ -36,5 +38,12 @@ public class CommentClass {
     private ThreadClass thread;
 
     @Column(name = "is_deleted", nullable = false)
-    private boolean isDeleted = false; // Valor por defecto es 'false'
+    private boolean isDeleted = false;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private CommentClass parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CommentClass> replies = new ArrayList<>();
 }
