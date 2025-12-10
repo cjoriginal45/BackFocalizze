@@ -58,7 +58,7 @@ public class CommentServiceImpl  implements CommentService {
         if (allBlockedIds.isEmpty()) {
             comments = commentRepository.findActiveCommentsByThread(thread, pageable);
         } else {
-            comments = commentRepository.findActiveCommentsByThreadAndFilterBlocked(thread, allBlockedIds, pageable);
+            comments = commentRepository.findActiveRootCommentsByThreadAndFilterBlocked(thread, allBlockedIds, pageable);
         }
 
         return comments.map(commentMapper::toCommentResponseDto);
