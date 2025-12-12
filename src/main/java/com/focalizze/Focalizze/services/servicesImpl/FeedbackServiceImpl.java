@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +32,7 @@ public class FeedbackServiceImpl implements FeedbackService {
     }
 
     @Override
-    public List<Long> getHiddenThreadIds(User currentUser) {
+    public Set<Long> getHiddenThreadIds(User currentUser) {
         return hiddenRepo.findHiddenThreadIdsByUser(currentUser);
     }
 }

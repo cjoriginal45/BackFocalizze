@@ -54,7 +54,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                 .collect(Collectors.toList());
 
         // --- NUEVO: OBTENER HILOS OCULTOS ---
-        List<Long> hiddenThreadIds = feedbackService.getHiddenThreadIds(currentUser);
+        Set<Long> hiddenThreadIds = feedbackService.getHiddenThreadIds(currentUser);
 
         Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
         Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
