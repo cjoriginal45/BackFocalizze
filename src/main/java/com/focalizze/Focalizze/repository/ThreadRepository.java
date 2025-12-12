@@ -99,7 +99,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             @Param("currentUserId") Long currentUserId,
             @Param("followedUserIds") List<Long> followedUserIds,
             @Param("followedCategoryIds") List<Long> followedCategoryIds,
-            @Param("hiddenThreadIds") List<Long> hiddenThreadIds,
+            @Param("hiddenThreadIds") Set<Long> hiddenThreadIds,
             @Param("blockedUserIds") Set<Long> blockedUserIds,
             Pageable pageable);
 
