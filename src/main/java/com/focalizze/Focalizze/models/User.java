@@ -218,21 +218,25 @@ public class User implements UserDetails {
                 ", displayName='" + displayName + '\'' +
                 ", biography='" + biography + '\'' +
                 ", avatarUrl='" + avatarUrl + '\'' +
+                ", isTwoFactorEnabled=" + isTwoFactorEnabled +
+                ", tokenVersion=" + tokenVersion +
+                ", twoFactorCode='" + twoFactorCode + '\'' +
+                ", twoFactorCodeExpiry=" + twoFactorCodeExpiry +
+                ", calculatedThreadCount=" + calculatedThreadCount +
+                ", isBanned=" + isBanned +
+                ", banExpiresAt=" + banExpiresAt +
+                ", banReason='" + banReason + '\'' +
+                ", backgroundType='" + backgroundType + '\'' +
+                ", backgroundValue='" + backgroundValue + '\'' +
                 ", dailyThreadsRemaining=" + dailyThreadsRemaining +
                 ", role=" + role +
                 ", followingCount=" + followingCount +
                 ", followersCount=" + followersCount +
                 ", dailyInteractionsRemaining=" + dailyInteractionsRemaining +
                 ", createdAt=" + createdAt +
-                ", savedThreads=" + savedThreads +
-                ", threads=" + threads +
-                ", notifications=" + notifications +
-                ", comments=" + comments +
-                ", likes=" + likes +
-                ", reportsMade=" + reportsMade +
-                ", reportsReceived=" + reportsReceived +
-                ", following=" + following +
-                ", followers=" + followers +
+                ", resetPasswordToken='" + resetPasswordToken + '\'' +
+                ", resetPasswordTokenExpiry=" + resetPasswordTokenExpiry +
+                ", suspensionEndsAt=" + suspensionEndsAt +
                 '}';
     }
 
