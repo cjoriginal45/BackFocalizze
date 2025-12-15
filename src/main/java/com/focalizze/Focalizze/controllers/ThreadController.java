@@ -11,10 +11,14 @@ import com.focalizze.Focalizze.services.ThreadService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/thread")
@@ -25,19 +29,15 @@ public class ThreadController {
     private final LikeService likeService;
     private final SaveService saveService;
 
-    @PostMapping("/create")
+    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ThreadResponseDto> createThread(@Valid @RequestBody ThreadRequestDto threadRequestDto) {
-
-        // Obtenemos el usuario autenticado del contexto de seguridad
-        // Get the authenticated user from the security context
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        // Llamamos al servicio pasándole el DTO y el usuario
-        // We call the service passing it the DTO and the user
-        ThreadResponseDto response = threadService.createThread(threadRequestDto);
-
-        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    public ResponseEntity<ThreadResponseDto> createThread(
+            // @RequestPart permite recibir el JSON y los Archivos por separado
+            @RequestPart("threadRequest") @Valid ThreadRequestDto requestDto,
+            @RequestPart(value = "images", required = false) List<MultipartFile> images
+    ) {
+        ThreadResponseDto response = threadService.createThread(requestDto, images);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
     @PostMapping("/{threadId}/like")
@@ -93,4 +93,5 @@ public class ThreadController {
         ThreadResponseDto updatedThread = threadService.updateThread(id, updateDto, currentUser);
         return ResponseEntity.ok(updatedThread);
     }
+
 }
