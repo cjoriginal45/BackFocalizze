@@ -6,6 +6,7 @@ import com.focalizze.Focalizze.dto.mappers.ThreadMapper;
 import com.focalizze.Focalizze.exceptions.DailyLimitExceededException;
 import com.focalizze.Focalizze.models.*;
 import com.focalizze.Focalizze.repository.*;
+import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.MentionService;
 import com.focalizze.Focalizze.services.ThreadService;
 import lombok.RequiredArgsConstructor;
@@ -13,9 +14,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -32,6 +36,7 @@ public class ThreadServiceImpl implements ThreadService {
     private final SavedThreadRepository savedThreadRepository;
     private final MentionService mentionService;
     private static final int DAILY_THREAD_LIMIT = 3;
+    private FileStorageService fileStorageService;
 
 
     // --- MÉTODO PARA OBTENER DISPONIBLES ---
@@ -221,6 +226,85 @@ public class ThreadServiceImpl implements ThreadService {
                 dto.id(), dto.user(), dto.publicationDate(), dto.posts(),
                 dto.stats(), isLiked, isSaved, dto.categoryName()
         );
+    }
+
+    @Override
+    @Transactional
+    public ThreadResponseDto createThread(ThreadRequestDto requestDto, List<MultipartFile> files) {
+        String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
+        User currentUser = userRepository.findByUsername(currentUsername)
+                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado."));
+
+        // Validar límite diario (Tu lógica existente)
+        if (getThreadsAvailableToday(currentUser) <= 0) {
+            throw new DailyLimitExceededException("Límite diario de " + DAILY_THREAD_LIMIT + " hilos alcanzado.");
+        }
+
+        // ... (Lógica de categoría y fechas igual que antes) ...
+        CategoryClass category = null;
+        if (requestDto.category() != null && !requestDto.category().equalsIgnoreCase("Ninguna")) {
+            category = categoryRepository.findByName(requestDto.category())
+                    .orElseThrow(() -> new IllegalArgumentException("Categoría no válida"));
+        }
+
+        boolean isScheduled = requestDto.scheduledTime() != null;
+        LocalDateTime creationTime = LocalDateTime.now();
+        LocalDateTime publicationTime = isScheduled ? requestDto.scheduledTime() : creationTime;
+
+        // 1. Crear el Hilo
+        ThreadClass newThread = ThreadClass.builder()
+                .user(currentUser)
+                .category(category)
+                .createdAt(creationTime)
+                .isPublished(!isScheduled)
+                .publishedAt(publicationTime)
+                .scheduledTime(requestDto.scheduledTime())
+                .isDeleted(false)
+                .images(new ArrayList<>()) // Inicializar lista
+                .build();
+
+        // 2. Procesar Imágenes (NUEVO)
+        if (files != null && !files.isEmpty()) {
+            for (MultipartFile file : files) {
+                // Validar tipo (opcional, también se hace en front)
+                if (!file.getContentType().startsWith("image/")) continue;
+
+                // Guardar en disco
+
+
+                String fileName = ((FileStorageServiceImpl) fileStorageService).storeThreadImage(file);
+
+                // Generar URL (Ajusta la ruta según tu configuración de recursos estáticos)
+                String fileUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                        .path("/images/") // O la ruta que exponga tu carpeta de uploads
+                        .path(fileName)
+                        .toUriString();
+
+                // Crear entidad imagen
+                ThreadImage image = ThreadImage.builder()
+                        .imageUrl(fileUrl)
+                        .thread(newThread)
+                        .build();
+
+                newThread.getImages().add(image);
+            }
+        }
+
+        // 3. Crear Posts
+        Post post1 = Post.builder().content(requestDto.post1()).position(1).thread(newThread).build();
+        Post post2 = Post.builder().content(requestDto.post2()).position(2).thread(newThread).build();
+        Post post3 = Post.builder().content(requestDto.post3()).position(3).thread(newThread).build();
+        newThread.setPosts(List.of(post1, post2, post3));
+
+        // 4. Guardar todo (Cascade se encarga de posts e imágenes)
+        ThreadClass savedThread = threadRepository.save(newThread);
+
+        // Menciones
+        for (Post post : savedThread.getPosts()) {
+            mentionService.processMentions(post, currentUser);
+        }
+
+        return threadMapper.mapToResponseDto(savedThread);
     }
 
 }
