@@ -15,11 +15,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.UUID;
 
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
     private final Path fileStorageLocation;
+
+    @Value("${file.upload-dir}")
+    private String uploadDir;
 
     @Autowired
     public FileStorageServiceImpl(@Value("${file.upload-dir}") String uploadDir) {
@@ -63,6 +67,31 @@ public class FileStorageServiceImpl implements FileStorageService {
             }
         } catch (MalformedURLException ex) {
             throw new RuntimeException("Archivo no encontrado: " + filename, ex);
+        }
+    }
+
+    public String storeThreadImage(MultipartFile file) {
+        try {
+            // Validar nombre y extensión básica
+            String originalName = file.getOriginalFilename();
+            if (originalName == null || originalName.contains("..")) {
+                throw new RuntimeException("Nombre de archivo inválido: " + originalName);
+            }
+
+            // Generar nombre único
+            String extension = originalName.substring(originalName.lastIndexOf("."));
+            String storedFileName = "thread_" + UUID.randomUUID().toString() + extension;
+
+            // Crear directorios si no existen
+            Path targetLocation = Paths.get(uploadDir).toAbsolutePath().normalize();
+            Files.createDirectories(targetLocation);
+
+            // Guardar
+            Files.copy(file.getInputStream(), targetLocation.resolve(storedFileName), StandardCopyOption.REPLACE_EXISTING);
+
+            return storedFileName;
+        } catch (IOException ex) {
+            throw new RuntimeException("No se pudo guardar el archivo.", ex);
         }
     }
 
