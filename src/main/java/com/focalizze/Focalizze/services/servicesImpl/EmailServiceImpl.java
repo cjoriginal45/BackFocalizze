@@ -3,18 +3,36 @@ package com.focalizze.Focalizze.services.servicesImpl;
 import com.focalizze.Focalizze.services.EmailService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+/**
+ * Implementation of the {@link EmailService} interface.
+ * Handles sending transactional emails using JavaMailSender.
+ * <p>
+ * Implementación de la interfaz {@link EmailService}.
+ * Maneja el envío de correos transaccionales usando JavaMailSender.
+ */
 @Service
+@RequiredArgsConstructor
+@Slf4j
 public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
 
-    public EmailServiceImpl(JavaMailSender mailSender) {
-        this.mailSender = mailSender;
-    }
+    /**
+     * Sends a password reset link to the user.
+     * Executed asynchronously to prevent blocking the HTTP response.
+     * <p>
+     * Envía un enlace de restablecimiento de contraseña al usuario.
+     * Ejecutado asincrónicamente para evitar bloquear la respuesta HTTP.
+     *
+     * @param to    The recipient's email address. / La dirección de correo del destinatario.
+     * @param token The reset token. / El token de restablecimiento.
+     */
     @Async
     @Override
     public void sendPasswordResetEmail(String to, String token) {
@@ -43,6 +61,14 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    /**
+     * Sends a 2FA (Two-Factor Authentication) code to the user.
+     * <p>
+     * Envía un código de 2FA (Autenticación de Dos Factores) al usuario.
+     *
+     * @param to   The recipient's email address. / La dirección de correo del destinatario.
+     * @param code The numeric OTP code. / El código numérico OTP.
+     */
     @Async
     @Override
     public void sendTwoFactorCode(String to, String code) {
