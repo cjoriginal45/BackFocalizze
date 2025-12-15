@@ -44,6 +44,7 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
             LEFT JOIN FETCH t.user u
             LEFT JOIN FETCH t.category c
             LEFT JOIN FETCH t.posts p
+            LEFT JOIN FETCH t.images i
             WHERE t.id = :threadId
             """)
     Optional<ThreadClass> findByIdWithDetails(@Param("threadId") Long threadId);
