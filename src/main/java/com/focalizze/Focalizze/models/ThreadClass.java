@@ -47,6 +47,9 @@ public class ThreadClass {
     @Column(nullable = false)
     private LocalDateTime publishedAt;
 
+    @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ThreadImage> images = new ArrayList<>();
+
     @ManyToOne
     @JoinColumn(name="user_id") //foreign key
     private User user;
