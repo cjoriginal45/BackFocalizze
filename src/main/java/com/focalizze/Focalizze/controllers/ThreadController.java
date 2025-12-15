@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.controllers;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.ThreadRequestDto;
 import com.focalizze.Focalizze.dto.ThreadResponseDto;
@@ -28,6 +29,7 @@ public class ThreadController {
     private final ThreadService threadService;
     private final LikeService likeService;
     private final SaveService saveService;
+    private final ObjectMapper objectMapper;
 
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("isAuthenticated()")

@@ -2,10 +2,7 @@ package com.focalizze.Focalizze.models;
 
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Entity
 @Table(name = "thread_image_tbl")
@@ -24,5 +21,6 @@ public class ThreadImage {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thread_id")
+    @ToString.Exclude
     private ThreadClass thread;
 }

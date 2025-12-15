@@ -122,7 +122,8 @@ public class ThreadEnricher {
                     baseDto.stats(),
                     isLiked,
                     isSaved,
-                    baseDto.categoryName()
+                    baseDto.categoryName(),
+                    baseDto.images()
             );
 
         }).collect(Collectors.toList());

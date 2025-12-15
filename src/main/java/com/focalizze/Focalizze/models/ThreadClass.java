@@ -2,10 +2,7 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.ColumnDefault; // Importante!
 
@@ -24,6 +21,8 @@ public class ThreadClass {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer saveCount = 0;
 
     private boolean isSavedByCurrentUser;
@@ -34,10 +33,16 @@ public class ThreadClass {
 
     private boolean isPublished;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer likeCount = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer commentCount = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer viewCount = 0;
 
     @Column(nullable = false)
@@ -47,7 +52,13 @@ public class ThreadClass {
     @Column(nullable = false)
     private LocalDateTime publishedAt;
 
-    @OneToMany(mappedBy = "thread", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "thread",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    @ToString.Exclude
     private List<ThreadImage> images = new ArrayList<>();
 
     @ManyToOne

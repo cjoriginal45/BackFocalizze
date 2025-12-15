@@ -9,7 +9,8 @@ public record ThreadResponseDto(
         String categoryName,
         List<String> posts,
         LocalDateTime createdAt,
-        StatsDto stats
+        StatsDto stats,
+        List<String> images
 ) {
 
 }

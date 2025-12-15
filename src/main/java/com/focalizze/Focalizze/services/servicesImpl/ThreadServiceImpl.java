@@ -36,7 +36,7 @@ public class ThreadServiceImpl implements ThreadService {
     private final SavedThreadRepository savedThreadRepository;
     private final MentionService mentionService;
     private static final int DAILY_THREAD_LIMIT = 3;
-    private FileStorageService fileStorageService;
+    private final FileStorageService fileStorageService;
 
 
     // --- MÉTODO PARA OBTENER DISPONIBLES ---
@@ -202,8 +202,6 @@ public class ThreadServiceImpl implements ThreadService {
     // Método privado refactorizado para evitar duplicar código
     // Private method refactored to avoid duplicate code
     private FeedThreadDto enrichDtoWithUserData(ThreadClass thread) {
-        // Obtenemos el usuario actual (o null si es un invitado)
-        // Get the current user (or null if it's a guest)
         User currentUser = null;
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null && authentication.isAuthenticated() && !"anonymousUser".equals(authentication.getPrincipal())) {
@@ -222,9 +220,22 @@ public class ThreadServiceImpl implements ThreadService {
             isSaved = savedThreadRepository.existsByUserAndThread(currentUser, thread);
         }
 
+        List<String> imageUrls = thread.getImages() != null
+                ? thread.getImages().stream()
+                .map(img -> img.getImageUrl())
+                .toList()
+                : List.of();
+
         return new FeedThreadDto(
-                dto.id(), dto.user(), dto.publicationDate(), dto.posts(),
-                dto.stats(), isLiked, isSaved, dto.categoryName()
+                dto.id(),
+                dto.user(),
+                dto.publicationDate(),
+                dto.posts(),
+                dto.stats(),
+                isLiked,
+                isSaved,
+                dto.categoryName(),
+                imageUrls
         );
     }
 

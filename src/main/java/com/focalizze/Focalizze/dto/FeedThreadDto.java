@@ -11,13 +11,14 @@ public record FeedThreadDto(
         StatsDto stats,
         boolean isLiked,
         boolean isSaved,
-        String categoryName // <-- El campo que vamos a poblar
+        String categoryName, // <-- El campo que vamos a poblar
+        List<String> images
 ) {
     // Este es el método que estabas usando. Lo reemplazaremos por el constructor directo.
     public FeedThreadDto withInteractionStatus(boolean newIsLiked, boolean newIsSaved) {
         return new FeedThreadDto(
                 this.id, this.user, this.publicationDate, this.posts,
-                this.stats, newIsLiked, newIsSaved, this.categoryName // <-- Fíjate que arrastra el categoryName existente (que era null)
+                this.stats, newIsLiked, newIsSaved, this.categoryName, this.images // <-- Fíjate que arrastra el categoryName existente (que era null)
         );
     }
 
