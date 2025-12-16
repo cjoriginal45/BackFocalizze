@@ -9,7 +9,6 @@ import java.util.List;
 
 public interface ThreadService {
 
-    ThreadResponseDto createThread(ThreadRequestDto requestDto);
 
     FeedThreadDto getThreadByIdAndIncrementView(Long threadId);
 

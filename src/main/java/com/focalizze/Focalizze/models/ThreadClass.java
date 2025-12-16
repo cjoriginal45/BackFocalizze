@@ -8,17 +8,22 @@ import org.hibernate.annotations.ColumnDefault; // Importante!
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @AllArgsConstructor
 @Builder
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
 @Table(name = "thread_tbl")
 public class ThreadClass {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
@@ -59,7 +64,7 @@ public class ThreadClass {
     )
     @Builder.Default
     @ToString.Exclude
-    private List<ThreadImage> images = new ArrayList<>();
+    private Set<ThreadImage> images = new HashSet<>(); // <-- Set y HashSet
 
     @ManyToOne
     @JoinColumn(name="user_id") //foreign key
@@ -92,6 +97,7 @@ public class ThreadClass {
 
     public ThreadClass(){
         this.posts = new ArrayList<>();
+        this.images = new HashSet<>();
         this.reports = new ArrayList<>();
         this.likes = new ArrayList<>();
         this.comments = new ArrayList<>();

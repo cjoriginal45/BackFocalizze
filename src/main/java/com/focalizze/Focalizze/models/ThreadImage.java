@@ -6,7 +6,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "thread_image_tbl")
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -14,6 +16,7 @@ public class ThreadImage {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(nullable = false)
