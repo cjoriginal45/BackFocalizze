@@ -58,7 +58,7 @@ public class CategoryServiceImpl implements CategoryService {
     public List<CategoryDto> getAllCategories() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        Set<Long> followedCategoryIds = Collections.emptySet();
+        Set<Long> followedCategoryIds = new HashSet<>();
 
         // Check if principal is a User instance to determine followed categories
         // Comprobar si el principal es una instancia de User para determinar categorías seguidas
