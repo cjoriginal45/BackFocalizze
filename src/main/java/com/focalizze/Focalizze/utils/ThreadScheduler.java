@@ -11,6 +11,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 
+/**
+ * Scheduled task component for managing thread publication.
+ * Runs periodically to publish threads that were scheduled for a specific time.
+ * <p>
+ * Componente de tarea programada para gestionar la publicación de hilos.
+ * Se ejecuta periódicamente para publicar hilos que fueron programados para una hora específica.
+ */
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -19,30 +26,33 @@ public class ThreadScheduler {
     private final ThreadRepository threadRepository;
 
     /**
-     * Este método se ejecuta cada minuto, todos los días.
-     * Busca hilos no publicados cuya fecha de programación ya ha pasado.
+     * Checks every minute for threads that are ready to be published.
+     * Updates their status to 'published' and persists changes.
+     * <p>
+     * Comprueba cada minuto si hay hilos listos para ser publicados.
+     * Actualiza su estado a 'publicado' y persiste los cambios.
      */
     @Scheduled(cron = "0 * * * * ?") // Se ejecuta en el segundo 0 de cada minuto
     @Transactional
     public void publishScheduledThreads() {
-        log.info("Ejecutando tarea de publicación de hilos programados...");
+        log.info("Running scheduled thread publication task... / Ejecutando tarea de publicación de hilos programados...");
 
         // 1. Busca hilos que necesitan ser publicados.
         List<ThreadClass> threadsToPublish = threadRepository
                 .findThreadsToPublish(LocalDateTime.now());
 
         if (threadsToPublish.isEmpty()) {
-            log.info("No hay hilos para publicar en este momento.");
+            log.debug("No threads to publish at this time. / No hay hilos para publicar en este momento.");
             return;
         }
 
-        // 2. Actualiza cada hilo.
-        for (ThreadClass thread : threadsToPublish) {
-            thread.setPublished(true);
-        }
+        // 2. Update status / Actualizar estado
+        threadsToPublish.forEach(thread -> thread.setPublished(true));
 
-        // 3. Guarda todos los cambios en la base de datos.
+        // 3. Persist changes / Persistir cambios
+        // saveAll is efficient for batch updates / saveAll es eficiente para actualizaciones por lotes
         threadRepository.saveAll(threadsToPublish);
+
         log.info("Publicados {} hilos que estaban programados.", threadsToPublish.size());
     }
 
