@@ -4,6 +4,7 @@ import com.focalizze.Focalizze.dto.BlockedUserDto;
 import com.focalizze.Focalizze.dto.UpdateThemeDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.UserSummaryDto;
+import com.focalizze.Focalizze.dto.mappers.UserMapper;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.services.BlockService;
 import com.focalizze.Focalizze.services.FollowService;
@@ -26,6 +27,7 @@ public class UserController {
     private final FollowService followService;
     private final UserService userService;
     private final BlockService blockService;
+    private final UserMapper userMapper;
 
     // Helper para obtener usuario actual del contexto de seguridad de forma segura
     private User getCurrentUser() {
@@ -82,7 +84,7 @@ public class UserController {
         User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
         // Mapeamos la entidad al DTO.
-        UserDto userDto = userService.mapToUserDto(currentUser);
+        UserDto userDto = userMapper.toDto(currentUser);
 
         return ResponseEntity.ok(userDto);
     }

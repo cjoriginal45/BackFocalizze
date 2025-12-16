@@ -36,6 +36,10 @@ public class ThreadEnricher {
         //    Esto nos da un DTO con los datos objetivos del hilo.
         FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
 
+        if (currentUser == null) {
+            return baseDto.withInteractionStatus(false, false);
+        }
+
         // 2. Cálculo de 'isLiked'
         //    Esta operación es rápida porque asumimos que la colección 'likes'
         //    ya fue cargada con un JOIN FETCH en la consulta del repositorio.
