@@ -7,6 +7,7 @@ import com.focalizze.Focalizze.models.ThreadClass;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import com.focalizze.Focalizze.models.Post;
+import com.focalizze.Focalizze.models.ThreadImage;
 
 import java.util.Collections;
 import java.util.List;
@@ -45,13 +46,22 @@ public class ThreadMapper {
                 .collect(Collectors.toList());
         String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
 
+        List<String> imageUrls = thread.getImages() != null
+                ? thread.getImages().stream()
+                .map(ThreadImage::getImageUrl) // Extraemos solo la URL
+                .collect(Collectors.toList())
+                : Collections.emptyList();
+
         return new ThreadResponseDto(
                 thread.getId(),
                 authorDto,
                 categoryName,
                 postContents,
                 thread.getCreatedAt(),
-                statsDto
+                statsDto,
+                imageUrls
+
+
         );
     }
 

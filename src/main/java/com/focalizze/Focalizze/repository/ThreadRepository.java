@@ -39,13 +39,12 @@ public interface ThreadRepository extends JpaRepository<ThreadClass,Long> {
      * @return An {@link Optional} containing the thread with details.
      *         Un {@link Optional} que contiene el hilo con detalles.
      */
-    @Query("""
-            SELECT t FROM ThreadClass t
-            LEFT JOIN FETCH t.user u
-            LEFT JOIN FETCH t.category c
-            LEFT JOIN FETCH t.posts p
-            WHERE t.id = :threadId
-            """)
+    @Query("SELECT t FROM ThreadClass t " +
+            "LEFT JOIN FETCH t.user u " +
+            "LEFT JOIN FETCH t.category c " +
+            "LEFT JOIN FETCH t.posts p " +
+            "LEFT JOIN FETCH t.images i " + // <--- NUEVO
+            "WHERE t.id = :threadId")
     Optional<ThreadClass> findByIdWithDetails(@Param("threadId") Long threadId);
 
     // --- FEEDS ---
