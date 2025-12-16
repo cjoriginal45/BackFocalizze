@@ -21,34 +21,54 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 
 
-
+/**
+ * Implementation of the {@link NotificationService} interface.
+ * Handles notification creation, persistence, and real-time delivery via WebSockets.
+ * <p>
+ * Implementación de la interfaz {@link NotificationService}.
+ * Maneja la creación, persistencia y entrega en tiempo real de notificaciones vía WebSockets.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class NotificationServiceImpl implements NotificationService {
     private final NotificationRepository notificationRepository;
-    // SimpMessagingTemplate es la herramienta de Spring para enviar mensajes a través de WebSockets.
     private final SimpMessagingTemplate messagingTemplate;
     private final NotificationMapper notificationMapper;
     private final BlockRepository blockRepository;
 
+    /**
+     * Creates a notification and sends it asynchronously to the user.
+     * Performs a final block check before sending.
+     * <p>
+     * Crea una notificación y la envía asincrónicamente al usuario.
+     * Realiza una verificación final de bloqueo antes de enviar.
+     *
+     * @param userToNotify The recipient.
+     *                     El destinatario.
+     * @param type         The notification type.
+     *                     El tipo de notificación.
+     * @param triggerUser  The user who caused the event (optional).
+     *                     El usuario que causó el evento (opcional).
+     * @param thread       The associated thread (optional).
+     *                     El hilo asociado (opcional).
+     */
     @Override
     @Async
     public void createAndSendNotification(User userToNotify, NotificationType type, User triggerUser, ThreadClass thread) {
+
         if (triggerUser != null) {
             boolean isBlocked = blockRepository.existsByBlockerAndBlocked(userToNotify, triggerUser) ||
                     blockRepository.existsByBlockerAndBlocked(triggerUser, userToNotify);
             if (isBlocked) {
-                // Si hay un bloqueo, no se crea ni se envía la notificación.
-                log.warn("Notificación de {} a {} bloqueada.", triggerUser.getUsername(), userToNotify.getUsername());
+                log.debug("Notification blocked: {} -> {}", triggerUser.getUsername(), userToNotify.getUsername());
                 return;
             }
         }
 
-        // CONSTRUCCIÓN DEL MENSAJE: Ahora el mensaje se construye aquí.
         String message = buildMessage(type, triggerUser);
 
-        // 1. Crear y guardar la entidad de notificación.
+        // 1. Create and Save Entity / Crear y Guardar Entidad
         NotificationClass notification = NotificationClass.builder()
                 .user(userToNotify)
                 .triggerUser(triggerUser) // Guardamos quién originó la notificación
@@ -60,35 +80,48 @@ public class NotificationServiceImpl implements NotificationService {
                 .build();
         notificationRepository.save(notification);
 
-        // 2. Preparar el DTO para enviar al cliente a través de WebSocket.
+        // 2. Prepare WebSocket DTO / Preparar DTO WebSocket
         NotificationDto dto = notificationMapper.toDto(notification);
 
-        // 3. Enviar el mensaje al "topic" personal del usuario.
-        //    Spring se encargará de dirigir este mensaje al cliente correcto.
-        //    El destino final será '/user/{username}/queue/notifications'.
-        log.info("Enviando notificación a /user/{}/queue/notifications", userToNotify.getUsername());
+        // 3. Send Real-time Update / Enviar Actualización en Tiempo Real
+        // Destination: /user/{username}/queue/notifications
+        log.debug("Sending WS notification to user: {}", userToNotify.getUsername());
         messagingTemplate.convertAndSendToUser(
                 userToNotify.getUsername(),
                 "/queue/notifications",
-                dto);
+                dto
+        );
     }
 
+    /**
+     * Retrieves paginated notifications for a user.
+     * <p>
+     * Recupera notificaciones paginadas para un usuario.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<NotificationDto> getNotificationsForUser(User user, Pageable pageable) {
-        // 1. Buscamos la página de entidades en la base de datos.
-        //    (Necesitaremos optimizar esta consulta para evitar N+1).
-        Page<NotificationClass> notificationPage = notificationRepository.findByUserWithDetails(user, pageable);
-
-        // 2. Usamos el método 'map' de la página y el mapper para convertir cada entidad a su DTO.
-        return notificationPage.map(notificationMapper::toDto);
+        // Uses optimized FETCH JOIN query from repo
+        // Utiliza consulta optimizada FETCH JOIN del repo
+        return notificationRepository.findByUserWithDetails(user, pageable)
+                .map(notificationMapper::toDto);
     }
 
+    /**
+     * Checks for unread notifications efficiently.
+     * <p>
+     * Comprueba notificaciones no leídas eficientemente.
+     */
     @Override
     public boolean hasUnreadNotifications(User user) {
         return notificationRepository.existsByUserAndIsReadIsFalse(user);
     }
 
+    /**
+     * Marks all notifications as read in a single batch update.
+     * <p>
+     * Marca todas las notificaciones como leídas en una sola actualización por lotes.
+     */
     @Override
     @Transactional
     public void markAllAsRead(User user) {
@@ -96,7 +129,12 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     /**
-     * Método de ayuda para construir el mensaje de la notificación de forma consistente.
+     * Helper to build consistent notification messages.
+     * <p>
+     * Ayuda para construir mensajes de notificación consistentes.
+     *
+     * @param type The notification type.
+     * @return The localized message string.
      */
     private String buildMessage(NotificationType type, User triggerUser) {
         return switch (type) {
