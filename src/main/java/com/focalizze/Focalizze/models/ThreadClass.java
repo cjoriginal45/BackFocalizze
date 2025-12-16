@@ -2,28 +2,32 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.BatchSize;
 import org.hibernate.annotations.ColumnDefault; // Importante!
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @AllArgsConstructor
 @Builder
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 @Entity
 @Table(name = "thread_tbl")
 public class ThreadClass {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer saveCount = 0;
 
     private boolean isSavedByCurrentUser;
@@ -34,10 +38,16 @@ public class ThreadClass {
 
     private boolean isPublished;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer likeCount = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer commentCount = 0;
 
+    @Column(nullable = false)
+    @Builder.Default
     private Integer viewCount = 0;
 
     @Column(nullable = false)
@@ -46,6 +56,15 @@ public class ThreadClass {
 
     @Column(nullable = false)
     private LocalDateTime publishedAt;
+
+    @OneToMany(
+            mappedBy = "thread",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    @ToString.Exclude
+    private Set<ThreadImage> images = new HashSet<>(); // <-- Set y HashSet
 
     @ManyToOne
     @JoinColumn(name="user_id") //foreign key
@@ -78,6 +97,7 @@ public class ThreadClass {
 
     public ThreadClass(){
         this.posts = new ArrayList<>();
+        this.images = new HashSet<>();
         this.reports = new ArrayList<>();
         this.likes = new ArrayList<>();
         this.comments = new ArrayList<>();

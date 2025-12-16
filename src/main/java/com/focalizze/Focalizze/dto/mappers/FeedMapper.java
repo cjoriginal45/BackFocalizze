@@ -5,10 +5,12 @@ import com.focalizze.Focalizze.dto.StatsDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.Post;
 import com.focalizze.Focalizze.models.ThreadClass;
+import com.focalizze.Focalizze.models.ThreadImage;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -50,6 +52,12 @@ public class FeedMapper {
 
         String categoryName = (thread.getCategory() != null) ? thread.getCategory().getName() : null;
 
+        List<String> imageUrls = thread.getImages() != null
+                ? thread.getImages().stream()
+                .map(ThreadImage::getImageUrl)
+                .collect(Collectors.toList())
+                : Collections.emptyList();
+
         return new FeedThreadDto(
                 thread.getId(),
                 authorDto,
@@ -58,7 +66,8 @@ public class FeedMapper {
                 statsDto,
                 false, // isLiked (se llenará en el Enricher)
                 false, // isSaved (se llenará en el Enricher)
-                categoryName // <-- EL ARGUMENTO QUE FALTABA
+                categoryName, // <-- EL ARGUMENTO QUE FALTABA
+                imageUrls
         );
     }
 }
