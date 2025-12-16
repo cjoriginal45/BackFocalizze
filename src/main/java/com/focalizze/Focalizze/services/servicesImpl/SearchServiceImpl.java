@@ -21,6 +21,13 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of the {@link SearchService} interface.
+ * Handles search operations for users and content (threads/categories).
+ * <p>
+ * Implementación de la interfaz {@link SearchService}.
+ * Maneja operaciones de búsqueda para usuarios y contenido (hilos/categorías).
+ */
 @Service
 @RequiredArgsConstructor
 public class SearchServiceImpl implements SearchService {
@@ -30,12 +37,28 @@ public class SearchServiceImpl implements SearchService {
     private final ThreadRepository threadRepository;
     private final ThreadMapper threadMapper;
 
+
+    /**
+     * Searches for users by username prefix (autocomplete).
+     * <p>
+     * Busca usuarios por prefijo de nombre de usuario (autocompletado).
+     *
+     * @param prefix The prefix to search for (e.g., "joh").
+     *               El prefijo a buscar (ej. "joh").
+     * @return List of matching users (DTOs).
+     *         Lista de usuarios coincidentes (DTOs).
+     */
     @Override
+    @Transactional(readOnly = true)
     public List<UserSearchDto> searchUsersByPrefix(String prefix) {
-        // La búsqueda no debería incluir el '@'
+        if (prefix == null || prefix.isBlank()) {
+            return List.of();
+        }
+
+        // Remove '@' if present
+        // Eliminar '@' si está presente
         String cleanPrefix = prefix.startsWith("@") ? prefix.substring(1) : prefix;
 
-        // Devuelve una lista vacía si la búsqueda está vacía
         if (cleanPrefix.isBlank()) {
             return List.of();
         }
@@ -49,7 +72,24 @@ public class SearchServiceImpl implements SearchService {
     }
 
 
-
+    /**
+     * Searches for content based on a query string.
+     * Strategy:
+     * 1. Check if query matches a Category name exactly.
+     * 2. If not, search Thread post content.
+     * 3. Filter out results from blocked users.
+     * <p>
+     * Busca contenido basado en una cadena de consulta.
+     * Estrategia:
+     * 1. Comprobar si la consulta coincide exactamente con el nombre de una Categoría.
+     * 2. Si no, buscar en el contenido de los Posts de los Hilos.
+     * 3. Filtrar resultados de usuarios bloqueados.
+     *
+     * @param query The search query.
+     *              La consulta de búsqueda.
+     * @return List of threads matching the query.
+     *         Lista de hilos que coinciden con la consulta.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<ThreadResponseDto> searchContent(String query) {
@@ -57,19 +97,22 @@ public class SearchServiceImpl implements SearchService {
             return List.of();
         }
 
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Set<Long> blockedByCurrentUser = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
-        Set<Long> whoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
-
+        // 1. Resolve Current User & Blocked IDs
+        // 1. Resolver Usuario Actual e IDs Bloqueados
         Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.addAll(blockedByCurrentUser);
-        allBlockedIds.addAll(whoBlockedCurrentUser);
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        // Estrategia de búsqueda:
-        // 1. Intentar buscar por nombre de categoría exacto.
-        Optional<CategoryClass> category = categoryRepository.findByName(query);
+        if (principal instanceof User currentUser) {
+            allBlockedIds.addAll(userRepository.findBlockedUserIdsByBlocker(currentUser.getId()));
+            allBlockedIds.addAll(userRepository.findUserIdsWhoBlockedUser(currentUser.getId()));
+        }
 
+        // 2. Search Strategy
+        // 2. Estrategia de Búsqueda
         List<ThreadClass> foundThreads;
+
+        // A. Try Category Match / Intentar Coincidencia de Categoría
+        Optional<CategoryClass> category = categoryRepository.findByName(query);
 
         if (category.isPresent()) {
             foundThreads = threadRepository.findByCategory(category.get());
@@ -77,7 +120,8 @@ public class SearchServiceImpl implements SearchService {
             foundThreads = threadRepository.findByPostContentContainingIgnoreCase(query);
         }
 
-
+        // 3. Filter Blocked Users (Memory Filter)
+        // 3. Filtrar Usuarios Bloqueados (Filtro en Memoria)
         List<ThreadClass> filteredThreads = foundThreads.stream()
                 .filter(thread -> !allBlockedIds.contains(thread.getUser().getId()))
                 .toList();
