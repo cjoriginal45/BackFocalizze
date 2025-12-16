@@ -3,6 +3,7 @@ package com.focalizze.Focalizze.utils;
 import com.focalizze.Focalizze.dto.FeedThreadDto;
 import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.dto.mappers.FeedMapper;
+import com.focalizze.Focalizze.dto.mappers.UserMapper;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
 import com.focalizze.Focalizze.repository.BlockRepository;
@@ -11,10 +12,18 @@ import com.focalizze.Focalizze.repository.SavedThreadRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Component responsible for enriching Thread entities with context-aware data.
+ * It populates transient fields like "isLiked", "isSaved", "isFollowing" relative to the current user.
+ * <p>
+ * Componente responsable de enriquecer entidades de Hilo con datos conscientes del contexto.
+ * Puebla transitorios como "isLiked", "isSaved", "isFollowing" relativos al usuario actual.
+ */
 @Component
 @RequiredArgsConstructor
 public class ThreadEnricher {
@@ -25,83 +34,105 @@ public class ThreadEnricher {
     private final BlockRepository blockRepository;
 
     /**
-     * Toma una entidad ThreadClass y la enriquece con el estado de interacción del usuario actual.
+     * Enriches a single Thread entity with interaction status for the current user.
+     * Efficient for single item retrieval (e.g., thread details).
+     * <p>
+     * Enriquece una entidad de Hilo única con el estado de interacción para el usuario actual.
+     * Eficiente para la recuperación de un solo ítem (ej. detalles del hilo).
      *
-     * @param thread      La entidad del hilo a enriquecer.
-     * @param currentUser El usuario que está realizando la petición.
-     * @return Un FeedThreadDto completo y personalizado para el usuario.
+     * @param thread      The thread entity to enrich.
+     *                    La entidad del hilo a enriquecer.
+     * @param currentUser The user making the request (can be null).
+     *                    El usuario que realiza la petición (puede ser null).
+     * @return A fully enriched {@link FeedThreadDto}.
+     *         Un {@link FeedThreadDto} completamente enriquecido.
      */
     public FeedThreadDto enrich(ThreadClass thread, User currentUser) {
-        // 1. Conversión base usando el mapper.
-        //    Esto nos da un DTO con los datos objetivos del hilo.
+        // 1. Base conversion using mapper / Conversión base usando el mapper
         FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
 
+        // Fast exit for guests / Salida rápida para invitados
         if (currentUser == null) {
             return baseDto.withInteractionStatus(false, false);
         }
 
-        // 2. Cálculo de 'isLiked'
-        //    Esta operación es rápida porque asumimos que la colección 'likes'
-        //    ya fue cargada con un JOIN FETCH en la consulta del repositorio.
-        boolean isLikedByCurrentUser = thread.getLikes().stream()
+        // 2. Calculate 'isLiked' (In-memory if fetched eagerly)
+        // 2. Calcular 'isLiked' (En memoria si se cargó ansiosamente)
+        boolean isLikedByCurrentUser = thread.getLikes() != null && thread.getLikes().stream()
                 .anyMatch(like -> like.getUser().getId().equals(currentUser.getId()));
 
-        // 3. Cálculo de 'isSaved'
-        //    Esta operación requiere una consulta a la BD.
-        //    Es ineficiente si se hace en un bucle (problema N+1).
+        // 3. Calculate 'isSaved' (DB Query - Safe for single item)
+        // 3. Calcular 'isSaved' (Consulta BD - Seguro para un solo ítem)
         boolean isSavedByCurrentUser = savedThreadRepository.existsByUserAndThread(currentUser, thread);
 
-        // 4. Devolvemos una nueva instancia del DTO con los booleanos correctos.
+        // 4. Return updated DTO / Devolver DTO actualizado
         return baseDto.withInteractionStatus(isLikedByCurrentUser, isSavedByCurrentUser);
     }
 
     /**
-     * Método optimizado para enriquecer una LISTA de hilos, evitando el problema N+1 para 'isSaved'.
+     * Optimized method to enrich a LIST of threads, avoiding the N+1 SELECT problem.
+     * Performs bulk fetching for saved, followed, and blocked statuses.
+     * <p>
+     * Método optimizado para enriquecer una LISTA de hilos, evitando el problema N+1 SELECT.
+     * Realiza búsquedas por lotes para estados de guardado, seguido y bloqueado.
      *
-     * @param threads     La lista de hilos a enriquecer.
-     * @param currentUser El usuario que está realizando la petición.
-     * @return Una lista de FeedThreadDto completos y personalizados.
+     * @param threads     The list of threads to enrich.
+     *                    La lista de hilos a enriquecer.
+     * @param currentUser The user making the request.
+     *                    El usuario que realiza la petición.
+     * @return A list of enriched {@link FeedThreadDto}.
+     *         Una lista de {@link FeedThreadDto} enriquecidos.
      */
     public List<FeedThreadDto> enrichList(List<ThreadClass> threads, User currentUser) {
         if (threads == null || threads.isEmpty()) {
             return List.of();
         }
 
+        // 1. Handle Guest User (No interactions) / Manejar Usuario Invitado (Sin interacciones)
+        if (currentUser == null) {
+            return threads.stream()
+                    .map(feedMapper::toFeedThreadDto)
+                    .toList();
+        }
 
-        // 1. Obtenemos los IDs de los hilos y de los autores
+        // 2. Extract IDs for bulk queries / Extraer IDs para consultas por lotes
         List<Long> threadIds = threads.stream().map(ThreadClass::getId).toList();
         Set<Long> authorIds = threads.stream().map(t -> t.getUser().getId()).collect(Collectors.toSet());
 
-        // 2. Hacemos UNA consulta para saber qué hilos ha guardado el usuario.
+        // 3. Bulk Fetch: Saved Status / Búsqueda por lotes: Estado Guardado
         Set<Long> savedThreadIds = savedThreadRepository.findSavedThreadIdsByUserInThreadIds(currentUser, threadIds);
 
-        // 3. Hacemos UNA consulta para saber a qué autores de esta lista sigue el usuario.
-        Set<Long> followedUserIds = followRepository.findFollowedUserIdsByFollower(currentUser, authorIds);
+        // 4. Bulk Fetch: Following Status / Búsqueda por lotes: Estado Siguiendo
+        // (Prevent SQL error if authorIds is empty, though unlikely if threads is not empty)
+        Set<Long> followedUserIds = authorIds.isEmpty() ? Collections.emptySet() :
+                followRepository.findFollowedUserIdsByFollower(currentUser, authorIds);
 
-        Set<Long> blockedUserIds = blockRepository.findBlockedIdsByBlockerAndBlockedIdsIn(currentUser, authorIds);
+        // 5. Bulk Fetch: Block Status / Búsqueda por lotes: Estado Bloqueo
+        Set<Long> blockedUserIds = authorIds.isEmpty() ? Collections.emptySet() :
+                blockRepository.findBlockedIdsByBlockerAndBlockedIdsIn(currentUser, authorIds);
 
 
-        // --- MAPEO Y ENRIQUECIMIENTO FINAL ---
+        // --- MAPPING & ENRICHMENT / MAPEO Y ENRIQUECIMIENTO ---
         return threads.stream().map(thread -> {
 
-            // a. Lógica para 'isLiked' (en memoria, gracias al JOIN FETCH)
+            // A. 'isLiked' (In-memory)
             boolean isLiked = thread.getLikes().stream()
                     .anyMatch(like -> like.getUser().getId().equals(currentUser.getId()));
 
-            // b. Lógica para 'isSaved' (en memoria)
+            // B. 'isSaved' (O(1) lookup in Set)
             boolean isSaved = savedThreadIds.contains(thread.getId());
 
-            // c. Lógica para 'isFollowing' (en memoria)
+            // C. 'isFollowing' (O(1) lookup in Set)
             boolean isFollowing = followedUserIds.contains(thread.getUser().getId());
 
-
-            // d. Conversión base usando el mapper.
-            //    Esto nos da un DTO con 'isLiked=false', 'isSaved=false' y 'user.isFollowing=false'.
-            FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
-
+            // D. 'isBlocked' (O(1) lookup in Set)
             boolean isBlocked = blockedUserIds.contains(thread.getUser().getId());
 
-            // e. Creamos el UserDto final con el 'isFollowing' correcto.
+            // E. Base DTO / DTO Base
+            FeedThreadDto baseDto = feedMapper.toFeedThreadDto(thread);
+
+            // F. Reconstruct UserDto with correct relationship flags
+            // F. Reconstruir UserDto con banderas de relación correctas
             UserDto finalUserDto = new UserDto(
                     baseDto.user().id(),
                     baseDto.user().username(),
@@ -117,7 +148,7 @@ public class ThreadEnricher {
                     baseDto.user().backgroundValue()
             );
 
-            // f. Creamos el FeedThreadDto final con todos los datos enriquecidos.
+            // G. Final DTO / DTO Final
             return new FeedThreadDto(
                     baseDto.id(),
                     finalUserDto,
