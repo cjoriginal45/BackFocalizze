@@ -9,6 +9,7 @@ import com.focalizze.Focalizze.repository.ReportRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.ReportService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -16,6 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
+/**
+ * Implementation of the {@link ReportService} interface.
+ * Handles reporting of users and threads for moderation.
+ * <p>
+ * Implementación de la interfaz {@link ReportService}.
+ * Maneja el reporte de usuarios e hilos para moderación.
+ */
 @Service
 @RequiredArgsConstructor
 public class ReportServiceImpl implements ReportService {
@@ -24,15 +32,26 @@ public class ReportServiceImpl implements ReportService {
     private final UserRepository userRepository;
     private final ThreadRepository threadRepository;
 
+
+    /**
+     * Creates a report against a user profile.
+     * <p>
+     * Crea un reporte contra un perfil de usuario.
+     *
+     * @param usernameToReport The username of the target user.
+     *                         El nombre de usuario del usuario objetivo.
+     * @param request          The report details.
+     *                         Los detalles del reporte.
+     */
     @Override
     @Transactional
     public void reportUser(String usernameToReport, ReportRequestDto request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User reporter = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Reporter user not found / Usuario reportante no encontrado"));
 
         User reportedUser = userRepository.findByUsername(usernameToReport)
-                .orElseThrow(() -> new RuntimeException("Usuario a reportar no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Target user not found / Usuario objetivo no encontrado"));
 
         if (reporter.getId().equals(reportedUser.getId())) {
             throw new IllegalArgumentException("No puedes reportarte a ti mismo.");
@@ -50,15 +69,25 @@ public class ReportServiceImpl implements ReportService {
         reportRepository.save(report);
     }
 
+    /**
+     * Creates a report against a thread.
+     * <p>
+     * Crea un reporte contra un hilo.
+     *
+     * @param threadId The ID of the thread.
+     *                 El ID del hilo.
+     * @param request  The report details.
+     *                 Los detalles del reporte.
+     */
     @Override
     @Transactional
     public void reportThread(Long threadId, ReportRequestDto request) {
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User reporter = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new RuntimeException("Usuario autenticado no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Reporter user not found / Usuario reportante no encontrado"));
 
         ThreadClass thread = threadRepository.findById(threadId)
-                .orElseThrow(() -> new RuntimeException("Hilo no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("Thread not found / Hilo no encontrado"));
 
         if (thread.getUser().getId().equals(reporter.getId())) {
             throw new IllegalArgumentException("No puedes reportar tu propio hilo.");
