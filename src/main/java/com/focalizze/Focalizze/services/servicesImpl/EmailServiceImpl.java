@@ -55,7 +55,7 @@ public class EmailServiceImpl implements EmailService {
             helper.setFrom("noreply@focalizze.com"); // Puedes poner lo que quieras aquí
 
             mailSender.send(mimeMessage);
-        } catch (MessagingException e) {
+        } catch (Exception e) {
             // Manejar la excepción, por ejemplo, logueándola
             System.err.println("Error al enviar el email: " + e.getMessage());
         }

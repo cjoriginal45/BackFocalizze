@@ -1,14 +1,11 @@
 package com.focalizze.Focalizze.serviceTest;
 import com.focalizze.Focalizze.dto.CommentRequestDto;
-import com.focalizze.Focalizze.dto.CommentResponseDto;
-
 import com.focalizze.Focalizze.dto.mappers.CommentMapper;
 import com.focalizze.Focalizze.dto.mappers.UserMapper;
 import com.focalizze.Focalizze.models.CommentClass;
 import com.focalizze.Focalizze.models.InteractionType;
 import com.focalizze.Focalizze.models.ThreadClass;
 import com.focalizze.Focalizze.models.User;
-
 import com.focalizze.Focalizze.repository.BlockRepository;
 import com.focalizze.Focalizze.repository.CommentRepository;
 import com.focalizze.Focalizze.repository.ThreadRepository;
