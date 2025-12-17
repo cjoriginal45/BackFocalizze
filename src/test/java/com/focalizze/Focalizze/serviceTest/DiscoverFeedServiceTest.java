@@ -130,7 +130,7 @@ public class DiscoverFeedServiceTest {
         List<FeedThreadDto> list = new ArrayList<>();
         for(int i=0; i<count; i++) {
             // Mock básico de DTO
-            list.add(new FeedThreadDto((long)i, null, null, null, null, false, false, "Cat"));
+            list.add(new FeedThreadDto((long)i, null, null, null, null, false, false, "Cat",null ));
         }
         return list;
     }

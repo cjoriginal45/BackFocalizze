@@ -83,7 +83,7 @@ public class FeedServiceTest {
         given(threadRepository.findFollowingFeed(anyList(), anyList(), eq(1L), anySet(), any(Pageable.class)))
                 .willReturn(page);
 
-        List<FeedThreadDto> enrichedDtos = List.of(new FeedThreadDto(1L, null, null, null, null, false, false, "Cat"));
+        List<FeedThreadDto> enrichedDtos = List.of(new FeedThreadDto(1L, null, null, null, null, false, false, "Cat",null ));
         given(threadEnricher.enrichList(threads, currentUser)).willReturn(enrichedDtos);
 
         // When
