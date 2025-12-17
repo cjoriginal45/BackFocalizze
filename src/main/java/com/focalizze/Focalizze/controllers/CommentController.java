@@ -12,6 +12,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -57,8 +58,8 @@ public class CommentController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CommentResponseDto> createComment(
             @PathVariable Long threadId,
-            @Valid @RequestBody CommentRequestDto commentRequestDto) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            @Valid @RequestBody CommentRequestDto commentRequestDto,
+            @AuthenticationPrincipal User currentUser) {
         CommentResponseDto createdComment = commentService.createComment(threadId, commentRequestDto, currentUser);
         return new ResponseEntity<>(createdComment, HttpStatus.CREATED);
     }
@@ -75,8 +76,8 @@ public class CommentController {
     @PatchMapping("/comments/{commentId}")
     public ResponseEntity<CommentResponseDto> editComment(
             @PathVariable Long commentId,
-            @Valid @RequestBody CommentRequestDto commentRequestDto){
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            @Valid @RequestBody CommentRequestDto commentRequestDto,
+            @AuthenticationPrincipal User currentUser){
         CommentResponseDto editedComment = commentService.editComment(commentId,commentRequestDto,currentUser);
         return ResponseEntity.ok(editedComment);
     }
@@ -90,8 +91,8 @@ public class CommentController {
      * @return No content (204). / Sin contenido (204).
      */
     @DeleteMapping("/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId,
+                                              @AuthenticationPrincipal User currentUser) {
         commentService.deleteComment(commentId, currentUser);
         return ResponseEntity.noContent().build();
     }

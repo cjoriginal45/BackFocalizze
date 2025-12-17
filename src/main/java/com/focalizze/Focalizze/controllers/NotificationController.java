@@ -10,6 +10,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -42,9 +43,9 @@ public class NotificationController {
     @GetMapping
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<NotificationDto>> getMyNotifications(
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal User currentUser
     ) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Page<NotificationDto> notifications = notificationService.getNotificationsForUser(currentUser, pageable);
         return ResponseEntity.ok(notifications);
     }
@@ -58,8 +59,7 @@ public class NotificationController {
      */
     @GetMapping("/unread")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Map<String, Boolean>> hasUnreadNotifications() {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<Map<String, Boolean>> hasUnreadNotifications(@AuthenticationPrincipal User currentUser) {
         boolean hasUnread = notificationService.hasUnreadNotifications(currentUser);
         return ResponseEntity.ok(Map.of("hasUnread", hasUnread));
     }
@@ -73,8 +73,7 @@ public class NotificationController {
      */
     @PostMapping("/mark-as-read")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> markAllAsRead() {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<Void> markAllAsRead(@AuthenticationPrincipal User currentUser) {
         notificationService.markAllAsRead(currentUser);
         return ResponseEntity.ok().build();
     }

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,8 +56,8 @@ public class CategoryController {
      */
     @PostMapping("/{id}/follow")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<Void> toggleFollow(@PathVariable Long id){
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<Void> toggleFollow(@PathVariable Long id,
+                                             @AuthenticationPrincipal User currentUser){
         categoryFollowService.toggleFollowCategory(id, currentUser);
         return ResponseEntity.ok().build();
     }

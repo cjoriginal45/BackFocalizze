@@ -14,6 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
@@ -60,8 +61,8 @@ public class FeedController {
     @GetMapping("/discover")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Page<DiscoverItemDto>> getDiscoverFeed(
-            @PageableDefault(size = 20) Pageable pageable) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            @PageableDefault(size = 20) Pageable pageable,
+            @AuthenticationPrincipal User currentUser) {
         return ResponseEntity.ok(discoverFeedService.getDiscoverFeed(currentUser, pageable));
     }
 
@@ -78,9 +79,9 @@ public class FeedController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<Void> hideThread(
             @RequestParam Long threadId,
-            @RequestParam String reasonType) {
+            @RequestParam String reasonType,
+            @AuthenticationPrincipal User currentUser) {
 
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         feedbackService.hideThread(threadId, reasonType, currentUser);
         return ResponseEntity.ok().build();
     }
