@@ -110,8 +110,8 @@ public class CommentController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<CommentResponseDto> replyToComment(
             @PathVariable Long commentId,
-            @Valid @RequestBody CommentRequestDto request) {
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            @Valid @RequestBody CommentRequestDto request,
+            @AuthenticationPrincipal User currentUser) {
         CommentResponseDto reply = commentService.replyToComment(commentId, request, currentUser);
         return new ResponseEntity<>(reply, HttpStatus.CREATED);
     }
