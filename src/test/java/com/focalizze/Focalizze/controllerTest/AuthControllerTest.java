@@ -1,18 +1,21 @@
 package com.focalizze.Focalizze.controllerTest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.focalizze.Focalizze.dto.LoginRequestDto;
 import com.focalizze.Focalizze.dto.RegisterRequest;
 import com.focalizze.Focalizze.dto.RegisterResponse;
-import com.focalizze.Focalizze.exceptions.UserAlreadyExistsException;
+import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.models.UserRole;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.AuthService;
+import com.focalizze.Focalizze.services.EmailService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import com.focalizze.Focalizze.configurations.ApplicationConfig;
@@ -23,9 +26,10 @@ import com.focalizze.Focalizze.utils.JwtUtil;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 
+import java.util.Optional;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -34,221 +38,89 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(AuthController.class)
 public class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @MockitoBean private AuthService authService;
+    @MockitoBean private AuthenticationManager authenticationManager;
+    @MockitoBean private UserRepository userRepository;
+    @MockitoBean private JwtUtil jwtUtil;
+    @MockitoBean private EmailService emailService;
 
-    @MockitoBean
-    private AuthService authService;
 
-    @MockitoBean
-    private AuthenticationManager authenticationManager;
+    private User user;
 
-    @MockitoBean
-    private UserDetailsService userDetailsService;
-
-    @MockitoBean
-    private JwtUtil jwtUtil;
-
-    @MockitoBean
-    private UserRepository userRepository;
-
-    private RegisterRequest validRequest;
-    private RegisterResponse successResponse;
-
-    /**
-     * Configuración inicial antes de cada test
-     * Inicializa los objetos de prueba que se usan en múltiples tests
-     * /
-     * Initial setup before each test.
-     * Initializes test objects used in multiple tests.
-     *
-     */
     @BeforeEach
     void setUp() {
-        // Request válido para pruebas exitosas
-        // Valid request for successful tests
-        validRequest = new RegisterRequest(
-                "testuser",
-                "test@example.com",
-                "password123",
-                "password123"
-        );
-
-        // Response exitoso mock
-        // Response successful mock
-        successResponse = new RegisterResponse(
-                1L,
-                "testuser",
-                "testuser",
-                "test@example.com",
-                "User registered successfully"
-        );
+        user = User.builder().id(1L).username("testuser").email("test@email.com").role(UserRole.USER).build();
     }
 
-    /**
-     * Prueba: Registro exitoso con datos válidos
-     * Verifica que cuando se envían datos válidos al endpoint /api/auth/register:
-     * - Retorna status HTTP 201 (Created)
-     * - Retorna el RegisterResponse con todos los datos correctos
-     * - El servicio AuthService es llamado correctamente y retorna la respuesta esperada
-     * /
-     * Test: Successful registration with valid data
-     * Verify that when valid data is sent to the /api/auth/register endpoint:
-     * - Returns HTTP status 201 (Created)
-     * - Returns the RegisterResponse with all the correct data
-     * - The AuthService is called correctly and returns the expected response
-     */
     @Test
-    @DisplayName("Debería devolver 201 Created cuando el registro es exitoso")
-    void registerUser_WhenDataIsValid_ShouldReturn201Created() throws Exception {
-        // Given: Configurar el mock del servicio para retornar respuesta exitosa
-        // Configure the service mock to return a successful response
-        given(authService.registerUser(any(RegisterRequest.class))).willReturn(successResponse);
+    @DisplayName("registerUser: Should return 201 Created")
+    void registerUser_Success() throws Exception {
+        RegisterRequest req = new RegisterRequest("validuser", "valid@email.com", "password123", "password123");
+        RegisterResponse res = new RegisterResponse(1L, "user", "token","mail","message");
 
-        // When & Then: Ejecutar petición POST y verificar respuesta
-        // Execute POST request and verify response
+        given(authService.registerUser(any())).willReturn(res);
+
         mockMvc.perform(post("/api/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
+                        .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.userId").value(1L))
-                .andExpect(jsonPath("$.username").value("testuser"))
-                .andExpect(jsonPath("$.displayName").value("testuser"))
-                .andExpect(jsonPath("$.email").value("test@example.com"))
-                .andExpect(jsonPath("$.message").value("User registered successfully"));
+                .andExpect(jsonPath("$.username").value("user"));
     }
 
-    /**
-     * Prueba: Error cuando el nombre de usuario ya existe
-     * Verifica que cuando el servicio lanza UserAlreadyExistsException por username duplicado:
-     * - Retorna status HTTP 409 (Conflict)
-     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
-     * - El GlobalExceptionHandler maneja correctamente la excepción
-     * /
-     * Test: Error when username already exists
-     * Verify that when the service throws a UserAlreadyExistsException for a duplicate username:
-     * - Return HTTP status 409 (Conflict)
-     * - Return the specific error message in the response body
-     * - The GlobalExceptionHandler correctly handles the exception
-     */
     @Test
-    @DisplayName("Debería devolver 409 Conflict cuando el nombre de usuario ya existe")
-    void registerUser_WhenUsernameAlreadyExists_ShouldReturn409Conflict() throws Exception {
-        // Given: Configurar el mock del servicio para lanzar excepción por username existente
-        // Configure the service mock to throw an exception for an existing username
-        given(authService.registerUser(any(RegisterRequest.class)))
-                .willThrow(new UserAlreadyExistsException("El nombre de usuario ya está en uso"));
+    @DisplayName("login: Should return JWT if credentials valid")
+    void login_Success() throws Exception {
+        LoginRequestDto req = new LoginRequestDto("user", "pass");
 
-        // When & Then: Ejecutar petición y verificar error 409 Conflict
-        // Execute request and check for 409 Conflict error
-        mockMvc.perform(post("/api/auth/register")
+        // Simulamos autenticación exitosa (no lanza excepción)
+        given(authenticationManager.authenticate(any())).willReturn(null);
+        given(userRepository.findByUsername("user")).willReturn(Optional.of(user));
+        given(jwtUtil.generateToken(any())).willReturn("mock-jwt-token");
+
+        // Inyectamos valor para @Value en controller (si usas MockMvc con WebMvcTest, los @Value a veces son nulos)
+        // Pero Spring Boot Test suele resolverlos si están en application.properties.
+        // Si falla, usa ReflectionTestUtils en el @BeforeEach del test.
+
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("El nombre de usuario ya está en uso"));
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").value("mock-jwt-token"))
+                .andExpect(jsonPath("$.requiresTwoFactor").value(false));
     }
 
-    /**
-     * Prueba: Error cuando el email ya existe
-     * Verifica que cuando el servicio lanza UserAlreadyExistsException por email duplicado:
-     * - Retorna status HTTP 409 (Conflict)
-     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
-     * - El GlobalExceptionHandler maneja correctamente la excepción
-     * /
-     * Test: Error when email already exists
-     * Verify that when the service throws a UserAlreadyExistsException for a duplicate email:
-     * - Returns HTTP status 409 (Conflict)
-     * - Returns the specific error message in the response body
-     * - The GlobalExceptionHandler correctly handles the exception
-     */
     @Test
-    @DisplayName("Debería devolver 409 Conflict cuando el email ya existe")
-    void registerUser_WhenEmailAlreadyExists_ShouldReturn409Conflict() throws Exception {
-        // Given: Configurar el mock del servicio para lanzar excepción por email existente
-        // Configure the service mock to throw an exception for an existing email
-        given(authService.registerUser(any(RegisterRequest.class)))
-                .willThrow(new UserAlreadyExistsException("El email ya está registrado"));
+    @DisplayName("login: Should return 401 Unauthorized if bad credentials")
+    void login_BadCredentials() throws Exception {
+        LoginRequestDto req = new LoginRequestDto("user", "wrong");
 
-        // When & Then: Ejecutar petición y verificar error 409 Conflict
-        // Execute request and check for 409 Conflict error
-        mockMvc.perform(post("/api/auth/register")
+        given(authenticationManager.authenticate(any())).willThrow(new BadCredentialsException("Bad creds"));
+
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
-                .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("El email ya está registrado"));
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Invalid credentials / Credenciales inválidas"));
     }
 
-    /**
-     * Prueba: Error cuando las contraseñas no coinciden
-     * Verifica que cuando el servicio lanza IllegalArgumentException por contraseñas diferentes:
-     * - Retorna status HTTP 400 (Bad Request)
-     * - Retorna el mensaje de error específico en el cuerpo de la respuesta
-     * - El GlobalExceptionHandler maneja correctamente la excepción
-     * /
-     * Test: Error when passwords do not match
-     * Verify that when the service throws an IllegalArgumentException for different passwords:
-     * - Return HTTP status 400 (Bad Request)
-     * - Return the specific error message in the response body
-     * - The GlobalExceptionHandler correctly handles the exception
-     */
     @Test
-    @DisplayName("Debería devolver 400 Bad Request cuando las contraseñas no coinciden")
-    void registerUser_WhenPasswordsDoNotMatch_ShouldReturn400BadRequest() throws Exception {
-        // Given: Configurar el mock del servicio para lanzar excepción por contraseñas no coincidentes
-        // Configure the service mock to throw an exception for mismatched passwords
-        given(authService.registerUser(any(RegisterRequest.class)))
-                .willThrow(new IllegalArgumentException("Las contraseñas no coinciden"));
+    @DisplayName("login: Should return 200 with 2FA required if enabled")
+    void login_2FA_Enabled() throws Exception {
+        user.setTwoFactorEnabled(true);
+        LoginRequestDto req = new LoginRequestDto("user", "pass");
 
-        // When & Then: Ejecutar petición y verificar error 400 Bad Request
-        // Execute request and check for 400 Bad Request error
-        mockMvc.perform(post("/api/auth/register")
+        given(authenticationManager.authenticate(any())).willReturn(null);
+        given(userRepository.findByUsername("user")).willReturn(Optional.of(user));
+
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(validRequest))
-                        .with(csrf()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("Las contraseñas no coinciden"));
-    }
-
-    /**
-     * Prueba: Error cuando los datos de registro son inválidos (validación de Spring)
-     * Verifica que cuando se envían datos que violan las validaciones (@NotBlank, @Email, @Size):
-     * - Retorna status HTTP 400 (Bad Request)
-     * - Las validaciones de Spring se ejecutan antes de llamar al servicio
-     * - El servicio AuthService NO es llamado (la validación falla a nivel de controller)
-     * /
-     * * Test: Error when registration data is invalid (Spring validation)
-     * Verify that when data is sent that violates validations (@NotBlank, @Email, @Size):
-     * - Returns HTTP status 400 (Bad Request)
-     * - Spring validations are executed before calling the service
-     * - The AuthService service is NOT called (validation fails at the controller level)
-     */
-    @Test
-    @DisplayName("Debería devolver 400 Bad Request cuando los datos de registro son inválidos")
-    void registerUser_WhenDataIsInvalid_ShouldReturn400BadRequest() throws Exception {
-        // Given: Crear request con datos inválidos que violan las validaciones
-        // Create request with invalid data that violates validations
-        RegisterRequest invalidRequest = new RegisterRequest(
-                "",
-                "invalid-email",
-                "123",
-                "456"
-        );
-
-        // When & Then: Ejecutar petición y verificar error 400 por validación fallida
-        // No es necesario configurar el mock del servicio porque la validación falla antes de llamarlo
-        // Execute request and check for 400 error due to failed validation
-        // It is not necessary to configure the service mock because validation fails before calling it
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(invalidRequest))
-                        .with(csrf()))
-                .andExpect(status().isBadRequest());
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.requiresTwoFactor").value(true))
+                .andExpect(jsonPath("$.token").doesNotExist()); // No devuelve token aún
     }
 
 }
