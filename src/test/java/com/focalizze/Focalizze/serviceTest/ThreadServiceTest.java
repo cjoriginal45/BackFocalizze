@@ -59,7 +59,6 @@ public class ThreadServiceTest {
     @Mock private MentionService mentionService;
     @Mock private FileStorageService fileStorageService;
     @Mock private ThreadEnricher threadEnricher;
-
     @Mock private SecurityContext securityContext;
     @Mock private Authentication authentication;
 
