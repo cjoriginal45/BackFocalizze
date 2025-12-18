@@ -4,14 +4,20 @@ package com.focalizze.Focalizze.models;
 import jakarta.persistence.*;
 import lombok.*;
 
-@Entity
-@Table(name = "thread_image_tbl")
+/**
+ * Entity representing an image attached to a thread.
+ * <p>
+ * Entidad que representa una imagen adjunta a un hilo.
+ */
 @Getter
 @Setter
-@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@Entity
+@Table(name = "thread_image_tbl")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class ThreadImage {
 
     @Id
@@ -19,9 +25,17 @@ public class ThreadImage {
     @EqualsAndHashCode.Include
     private Long id;
 
+    /**
+     * The URL or path to the stored image file.
+     * La URL o ruta al archivo de imagen almacenado.
+     */
     @Column(nullable = false)
     private String imageUrl;
 
+    /**
+     * The thread to which this image belongs.
+     * El hilo al que pertenece esta imagen.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "thread_id")
     @ToString.Exclude
