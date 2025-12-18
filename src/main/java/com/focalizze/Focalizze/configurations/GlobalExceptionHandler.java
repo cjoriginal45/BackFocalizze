@@ -10,7 +10,11 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import java.util.HashMap;
 import java.util.Map;
 
-
+/**
+ * Global exception handler to standardize API error responses.
+ * <p>
+ * Manejador global de excepciones para estandarizar las respuestas de error de la API.
+ */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 

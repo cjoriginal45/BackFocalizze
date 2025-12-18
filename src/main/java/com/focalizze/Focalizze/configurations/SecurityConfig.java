@@ -21,6 +21,13 @@ import java.util.Arrays;
 import java.util.List;
 
 
+/**
+ * Security configuration class.
+ * Defines the security filter chain, CORS settings, and route authorization rules.
+ * <p>
+ * Clase de configuración de seguridad.
+ * Define la cadena de filtros de seguridad, configuraciones CORS y reglas de autorización de rutas.
+ */
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -30,6 +37,15 @@ public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
     private final AuthenticationProvider authenticationProvider;
 
+    /**
+     * Configures the security filter chain.
+     * <p>
+     * Configura la cadena de filtros de seguridad.
+     *
+     * @param http HttpSecurity object. / Objeto HttpSecurity.
+     * @return The built SecurityFilterChain. / El SecurityFilterChain construido.
+     * @throws Exception If configuration fails. / Si la configuración falla.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
@@ -73,6 +89,15 @@ public class SecurityConfig {
         return http.build();
     }
 
+    /**
+     * Defines CORS configuration.
+     * Uses immutable lists for thread safety and performance.
+     * <p>
+     * Define la configuración CORS.
+     * Utiliza listas inmutables para seguridad de hilos y rendimiento.
+     *
+     * @return The CORS source. / La fuente CORS.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

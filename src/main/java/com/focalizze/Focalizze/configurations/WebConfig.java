@@ -5,19 +5,29 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+/**
+ * Web MVC configuration.
+ * Configures static resource handling for uploaded images.
+ * <p>
+ * Configuración Web MVC.
+ * Configura el manejo de recursos estáticos para imágenes subidas.
+ */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    /**
+     * Maps the "/images/**" URL path to the physical file system location.
+     * <p>
+     * Mapea la ruta URL "/images/**" a la ubicación física del sistema de archivos.
+     *
+     * @param registry The ResourceHandlerRegistry. / El ResourceHandlerRegistry.
+     */
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        // Mapea la URL "/images/**" a la carpeta física en el disco
-        // "file:" indica que es una ruta del sistema de archivos
-
-        // Ajustamos la ruta para que apunte a la raíz de uploads, no solo avatars si tienes subcarpetas
-        // Si tus imagenes de hilos están en ./uploads/, usa esto:
+        // Maps URL path to file system path / Mapea ruta URL a ruta de sistema de archivos
         registry.addResourceHandler("/images/**")
                 .addResourceLocations("file:uploads/")
                 .addResourceLocations("classpath:/static/images/");

@@ -6,29 +6,47 @@ import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBr
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
+/**
+ * Configuration for WebSocket with STOMP messaging.
+ * <p>
+ * Configuración para WebSocket con mensajería STOMP.
+ */
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    /**
+     * Registers the STOMP endpoint for client connections.
+     * <p>
+     * Registra el endpoint STOMP para conexiones de clientes.
+     *
+     * @param registry The StompEndpointRegistry. / El StompEndpointRegistry.
+     */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        // Este es el endpoint que el cliente (Angular) usará para conectarse al servidor WebSocket.
-        // '/ws' es una convención común.
-        // 'withSockJS()' es un fallback para navegadores que no soportan WebSockets nativos.
+        // '/ws' is the connection point / '/ws' es el punto de conexión
         registry.addEndpoint("/ws").setAllowedOrigins("http://localhost:4200").withSockJS();
     }
 
+    /**
+     * Configures the message broker.
+     * <p>
+     * Configura el broker de mensajes.
+     *
+     * @param registry The MessageBrokerRegistry. / El MessageBrokerRegistry.
+     */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
-        // Define los prefijos de los "destinos" que el broker manejará.
-        // Los clientes se suscribirán a destinos que empiecen con '/topic' o '/user'.
+        // Destination prefixes for server-to-client messages (Broadcasting)
+        // Prefijos de destino para mensajes servidor-a-cliente (Difusión)
         registry.enableSimpleBroker("/topic", "/user");
 
-        // Define el prefijo para los mensajes que van del cliente al servidor.
-        // Ej: El cliente enviará a '/app/hello'.
+        // Prefix for client-to-server messages
+        // Prefijo para mensajes cliente-a-servidor
         registry.setApplicationDestinationPrefixes("/app");
 
-        // Permite enviar mensajes a un usuario específico. El destino será algo como
-        // '/user/{username}/queue/notifications'.
+        // Prefix for user-specific messages
+        // Prefijo para mensajes específicos de usuario
         registry.setUserDestinationPrefix("/user");
     }
 }
