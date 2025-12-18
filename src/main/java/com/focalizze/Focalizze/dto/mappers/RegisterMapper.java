@@ -5,6 +5,11 @@ import com.focalizze.Focalizze.models.User;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper for registration responses.
+ * <p>
+ * Mapper para respuestas de registro.
+ */
 @Component
 public class RegisterMapper {
 

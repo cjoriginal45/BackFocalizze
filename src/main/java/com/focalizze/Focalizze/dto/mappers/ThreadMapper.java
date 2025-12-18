@@ -13,6 +13,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * General purpose Thread Mapper.
+ * <p>
+ * Mapper de Hilos de propósito general.
+ */
 @Component
 public class ThreadMapper {
 
