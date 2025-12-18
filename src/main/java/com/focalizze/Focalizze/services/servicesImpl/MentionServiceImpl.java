@@ -19,6 +19,13 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * Implementation of the {@link MentionService} interface.
+ * Parses and processes user mentions (@username) in posts.
+ * <p>
+ * Implementación de la interfaz {@link MentionService}.
+ * Analiza y procesa menciones de usuario (@username) en publicaciones.
+ */
 @Service
 @RequiredArgsConstructor
 public class MentionServiceImpl implements MentionService {
@@ -28,12 +35,23 @@ public class MentionServiceImpl implements MentionService {
     private final NotificationService notificationService;
     private final BlockRepository blockRepository;
 
+    // Compiled regex pattern for efficiency / Patrón regex compilado para eficiencia
     private static final Pattern MENTION_PATTERN = Pattern.compile("@(\\w+)");
 
+    /**
+     * Extracts mentions from a post, verifies users, checks blocks, and creates notifications.
+     * <p>
+     * Extrae menciones de un post, verifica usuarios, comprueba bloqueos y crea notificaciones.
+     *
+     * @param post   The post containing content.
+     *               El post que contiene el contenido.
+     * @param author The author of the post.
+     *               El autor del post.
+     */
     @Override
     @Transactional
     public void processMentions(Post post, User author) {
-// 1. Extraemos todos los usernames mencionados del contenido del post.
+        // 1. Extract usernames from content / Extraer nombres de usuario del contenido
         Set<String> mentionedUsernames = new HashSet<>();
         Matcher matcher = MENTION_PATTERN.matcher(post.getContent());
         while (matcher.find()) {
@@ -44,33 +62,32 @@ public class MentionServiceImpl implements MentionService {
             return;
         }
 
-        // 2. Buscamos en la base de datos todos los usuarios que coincidan.
+        // 2. Batch fetch valid users / Obtener usuarios válidos en lote
         List<User> mentionedUsers = userRepository.findAllByUsernameIn(mentionedUsernames);
 
-        // 3. Para cada usuario encontrado, creamos la mención y la notificación.
+        // 3. Process each user / Procesar cada usuario
         for (User mentionedUser : mentionedUsers) {
-            // Evitamos auto-menciones y auto-notificaciones
+            // Prevent self-mention / Prevenir auto-mención
             if (mentionedUser.getId().equals(author.getId())) {
                 continue;
             }
 
+            // Check block status (bidirectional) / Comprobar estado de bloqueo (bidireccional)
             boolean isBlocked = blockRepository.existsByBlockerAndBlocked(author, mentionedUser) ||
                     blockRepository.existsByBlockerAndBlocked(mentionedUser, author);
 
             if (isBlocked) {
-                // Si hay un bloqueo, simplemente saltamos a la siguiente mención.
-                // No se crea la entidad Mention ni la notificación.
-                continue;
+                continue; // Skip if blocked / Saltar si está bloqueado
             }
 
-            // a) Crear y guardar la entidad Mention
+            // a) Save Mention entity / Guardar entidad Mención
             Mention mention = Mention.builder()
                     .mentionedUser(mentionedUser)
                     .post(post)
                     .build();
             mentionRepository.save(mention);
 
-            // b) Crear y enviar la notificación
+            // b) Trigger Notification / Disparar Notificación
             notificationService.createAndSendNotification(
                     mentionedUser,
                     NotificationType.MENTION,

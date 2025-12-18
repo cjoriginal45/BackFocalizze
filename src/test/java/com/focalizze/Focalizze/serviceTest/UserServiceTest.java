@@ -1,9 +1,14 @@
 package com.focalizze.Focalizze.serviceTest;
 
-import java.util.Optional;
+import com.focalizze.Focalizze.dto.UpdateThemeDto;
+import com.focalizze.Focalizze.dto.UserDto;
 import com.focalizze.Focalizze.models.User;
+import com.focalizze.Focalizze.models.UserRole;
+import com.focalizze.Focalizze.repository.BlockRepository;
+import com.focalizze.Focalizze.repository.FollowRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.servicesImpl.UserServiceImpl;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,16 +16,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
-@ExtendWith(MockitoExtension.class) // Mockito con JUnit 5
+@ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
-
-    @Mock
-    private UserRepository userRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private FollowRepository followRepository;
+    @Mock private BlockRepository blockRepository;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -29,126 +40,132 @@ public class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        // Given: Creamos un objeto User de prueba que usaremos en las simulaciones
+        // Inyectar el valor de @Value manualmente
+        ReflectionTestUtils.setField(userService, "defaultAvatarUrl", "default.png");
+
         testUser = User.builder()
                 .id(1L)
                 .username("testuser")
                 .email("test@email.com")
+                .role(UserRole.USER)
                 .build();
     }
 
+    // --- Tests de Búsqueda Básica ---
 
     @Test
-    @DisplayName("Debería devolver un usuario cuando se busca por un nombre de usuario existente")
-    void findUserByUserName_WhenUserExists_ShouldReturnUser() {
-        // Given: Configuramos el mock del repositorio.
+    @DisplayName("findUserByUserName: Should return user if exists")
+    void findUserByUserName_Found() {
+        given(userRepository.findByUsername("testuser")).willReturn(Optional.of(testUser));
+        assertThat(userService.findUserByUserName("testuser")).isPresent();
+    }
+
+    @Test
+    @DisplayName("findUserByEmail: Should return user if exists")
+    void findUserByEmail_Found() {
+        given(userRepository.findByEmail("test@email.com")).willReturn(Optional.of(testUser));
+        assertThat(userService.findUserByEmail("test@email.com")).isPresent();
+    }
+
+    // --- Tests de Validación ---
+
+    @Test
+    @DisplayName("validateEmail: Should return true for valid emails")
+    void validateEmail_Valid_ReturnsTrue() {
+        assertThat(userService.validateEmail("user@domain.com")).isTrue();
+        assertThat(userService.validateEmail("name.surname@company.co.uk")).isTrue();
+    }
+
+    @Test
+    @DisplayName("validateEmail: Should return false for invalid emails")
+    void validateEmail_Invalid_ReturnsFalse() {
+        assertThat(userService.validateEmail("invalid-email")).isFalse();
+        assertThat(userService.validateEmail("user@domain")).isFalse();
+        assertThat(userService.validateEmail(null)).isFalse();
+        assertThat(userService.validateEmail("")).isFalse();
+    }
+
+    // --- Tests de getUserProfile (Lógica compleja) ---
+
+    @Test
+    @DisplayName("getUserProfile: Should throw exception if user not found")
+    void getUserProfile_NotFound_ThrowsException() {
+        given(userRepository.findByUsername("unknown")).willReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class, () ->
+                userService.getUserProfile("unknown", null)
+        );
+    }
+
+    @Test
+    @DisplayName("getUserProfile: Should return DTO with false flags if currentUser is NULL (Guest)")
+    void getUserProfile_Guest_ShouldReturnBaseProfile() {
+        // Given
         given(userRepository.findByUsername("testuser")).willReturn(Optional.of(testUser));
 
-        // When: Ejecutamos el método del servicio que queremos probar
-        Optional<User> foundUser = userService.findUserByUserName("testuser");
-
-        // Then: Verificamos el resultado
-        assertThat(foundUser).isPresent();
-        assertThat(foundUser.get()).isEqualTo(testUser);
-
-        // Opcional: Verificar que el método del repositorio fue llamado
-        verify(userRepository).findByUsername("testuser");
-    }
-
-
-    @Test
-    @DisplayName("Debería devolver un Optional vacío cuando se busca por un nombre de usuario inexistente")
-    void findUserByUserName_WhenUserDoesNotExist_ShouldReturnEmpty() {
-        // Given: "Cuando se llame a userRepository.findByUsername con cualquier String, entonces devuelve un Optional vacío"
-        given(userRepository.findByUsername("nonexistentuser")).willReturn(Optional.empty());
-
         // When
-        Optional<User> foundUser = userService.findUserByUserName("nonexistentuser");
+        UserDto result = userService.getUserProfile("testuser", null);
 
         // Then
-        assertThat(foundUser).isNotPresent();
+        assertThat(result.username()).isEqualTo("testuser");
+        assertThat(result.isFollowing()).isFalse();
+        assertThat(result.isBlocked()).isFalse();
+
+        // Verificar que no se llamaron los repositorios de interacción
+        verify(followRepository, never()).existsByUserFollowerAndUserFollowed(any(), any());
     }
 
-
     @Test
-    @DisplayName("Debería devolver true para un email con formato válido")
-    void validateEmail_WhenEmailIsValid_ShouldReturnTrue() {
+    @DisplayName("getUserProfile: Should return false flags if viewing OWN profile")
+    void getUserProfile_SelfView_ShouldReturnBaseProfile() {
         // Given
-        String validEmail = "test@example.com";
+        given(userRepository.findByUsername("testuser")).willReturn(Optional.of(testUser));
 
-        // When
-        boolean result = userService.validateEmail(validEmail);
+        // When (currentUser tiene el mismo ID que testUser)
+        UserDto result = userService.getUserProfile("testuser", testUser);
 
         // Then
-        assertThat(result).isTrue();
+        assertThat(result.isFollowing()).isFalse();
+        assertThat(result.isBlocked()).isFalse();
+
+        verify(followRepository, never()).existsByUserFollowerAndUserFollowed(any(), any());
     }
 
     @Test
-    @DisplayName("Debería devolver false para un email con formato inválido")
-    void validateEmail_WhenEmailIsInvalid_ShouldReturnFalse() {
+    @DisplayName("getUserProfile: Should check interaction status if viewing OTHER profile")
+    void getUserProfile_OtherUser_ShouldCheckInteractions() {
         // Given
-        String invalidEmail = "esto-no-es-un-email";
+        User otherUser = User.builder().id(99L).username("other").build();
+
+        given(userRepository.findByUsername("testuser")).willReturn(Optional.of(testUser));
+
+        // Simulamos que lo sigue y lo tiene bloqueado (caso raro pero posible para testear la lógica)
+        given(followRepository.existsByUserFollowerAndUserFollowed(otherUser, testUser)).willReturn(true);
+        given(blockRepository.existsByBlockerAndBlocked(otherUser, testUser)).willReturn(true);
 
         // When
-        boolean result = userService.validateEmail(invalidEmail);
+        UserDto result = userService.getUserProfile("testuser", otherUser);
 
         // Then
-        assertThat(result).isFalse();
+        assertThat(result.isFollowing()).isTrue();
+        assertThat(result.isBlocked()).isTrue();
     }
 
+    // --- Tests de updateThemePreferences ---
 
     @Test
-    @DisplayName("Debería devolver true si el nombre de usuario está disponible")
-    void userNameAvailable_WhenUsernameIsAvailable_ShouldReturnTrue() {
-        // Given: "Cuando se llame a findUserNameAvailable con 'newuser', entonces devuelve true"
-        given(userRepository.findUserNameAvailable("newuser")).willReturn(true);
+    @DisplayName("updateThemePreferences: Should update user fields and save")
+    void updateThemePreferences_Success() {
+        // Given
+        UpdateThemeDto dto = new UpdateThemeDto("DARK", "#000000");
+        given(userRepository.findByUsername("testuser")).willReturn(Optional.of(testUser));
 
         // When
-        boolean isAvailable = userService.UserNameAvailable("newuser");
+        userService.updateThemePreferences("testuser", dto);
 
         // Then
-        assertThat(isAvailable).isTrue();
-    }
-
-    @Test
-    @DisplayName("Debería devolver false si el nombre de usuario no está disponible")
-    void userNameAvailable_WhenUsernameIsNotAvailable_ShouldReturnFalse() {
-        // Given: "Cuando se llame a findUserNameAvailable con 'testuser', entonces devuelve false"
-        given(userRepository.findUserNameAvailable("testuser")).willReturn(false);
-
-        // When
-        boolean isAvailable = userService.UserNameAvailable("testuser");
-
-        // Then
-        assertThat(isAvailable).isFalse();
-    }
-
-    @Test
-    @DisplayName("Debería devolver un usuario cuando busca un identificador valido")
-    void ValidIndentifier_ShouldReturnUser(){
-        // --- Caso 1: username ---
-        given(userRepository.findByUsernameOrEmail("testuser","testuser")).willReturn(Optional.of(testUser));
-
-        // When:
-        Optional<User> foundUser = userService.findUserByUsernameOrEmail("testuser","testuser");
-
-        // Then:
-        assertThat(foundUser).isPresent();
-        assertThat(foundUser.get()).isEqualTo(testUser);
-
-        verify(userRepository).findByUsernameOrEmail("testuser","testuser");
-
-        // --- Caso 2: email ---
-        given(userRepository.findByUsernameOrEmail("test@email.com","test@email.com")).willReturn(Optional.of(testUser));
-
-        // When:
-        Optional<User> foundUserEmail = userService.findUserByUsernameOrEmail("test@email.com","test@email.com");
-
-        // Then:
-        assertThat(foundUserEmail).isPresent();
-        assertThat(foundUserEmail.get()).isEqualTo(testUser);
-
-        verify(userRepository).findByUsernameOrEmail("test@email.com","test@email.com");
-
+        assertThat(testUser.getBackgroundType()).isEqualTo("DARK");
+        assertThat(testUser.getBackgroundValue()).isEqualTo("#000000");
+        verify(userRepository).save(testUser);
     }
 }

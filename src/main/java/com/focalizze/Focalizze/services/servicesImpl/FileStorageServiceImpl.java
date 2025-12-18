@@ -17,6 +17,13 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.UUID;
 
+/**
+ * Implementation of the {@link FileStorageService} interface.
+ * Handles physical file storage on the server's local file system.
+ * <p>
+ * Implementación de la interfaz {@link FileStorageService}.
+ * Maneja el almacenamiento físico de archivos en el sistema de archivos local del servidor.
+ */
 @Service
 public class FileStorageServiceImpl implements FileStorageService {
 
@@ -35,6 +42,22 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * Stores a file in the local file system with a unique name.
+     * Sanitizes the filename and prevents path traversal attacks.
+     * <p>
+     * Almacena un archivo en el sistema de archivos local con un nombre único.
+     * Sanea el nombre del archivo y previene ataques de salto de directorio (path traversal).
+     *
+     * @param file     The multipart file to store.
+     *                 El archivo multipart a almacenar.
+     * @param username The username to append to the filename for traceability.
+     *                 El nombre de usuario para agregar al nombre de archivo para trazabilidad.
+     * @return The generated unique filename.
+     *         El nombre de archivo único generado.
+     * @throws RuntimeException If the file contains invalid characters or storage fails.
+     *                          Si el archivo contiene caracteres inválidos o el almacenamiento falla.
+     */
     @Override
     public String storeFile(MultipartFile file, String username) {
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
@@ -55,18 +78,31 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
     }
 
+    /**
+     * Loads a file as a Resource from the file system.
+     * <p>
+     * Carga un archivo como un Recurso desde el sistema de archivos.
+     *
+     * @param filename The name of the file to load.
+     *                 El nombre del archivo a cargar.
+     * @return The loaded {@link Resource}.
+     *         El {@link Resource} cargado.
+     * @throws RuntimeException If the file is not found or cannot be read.
+     *                          Si el archivo no se encuentra o no se puede leer.
+     */
     @Override
     public Resource loadFileAsResource(String filename) {
         try {
             Path filePath = this.fileStorageLocation.resolve(filename).normalize();
             Resource resource = new UrlResource(filePath.toUri());
-            if (resource.exists()) {
+
+            if (resource.exists() || resource.isReadable()) {
                 return resource;
             } else {
-                throw new RuntimeException("Archivo no encontrado: " + filename);
+                throw new RuntimeException("File not found / Archivo no encontrado: " + filename);
             }
         } catch (MalformedURLException ex) {
-            throw new RuntimeException("Archivo no encontrado: " + filename, ex);
+            throw new RuntimeException("File not found / Archivo no encontrado: " + filename, ex);
         }
     }
 

@@ -20,7 +20,6 @@ public interface UserService {
 
     UserDto getUserProfile(String username, User currentUser);
 
-    public UserDto mapToUserDto(User user);
 
     void updateThemePreferences(String username, UpdateThemeDto dto);
 }

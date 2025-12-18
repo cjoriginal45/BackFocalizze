@@ -14,6 +14,7 @@ import com.focalizze.Focalizze.services.FileStorageService;
 import com.focalizze.Focalizze.services.ProfileService;
 import com.focalizze.Focalizze.services.ThreadService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
@@ -28,6 +29,13 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+/**
+ * Implementation of the {@link ProfileService} interface.
+ * Manages user profiles, avatar updates, and profile-specific thread retrieval.
+ * <p>
+ * Implementación de la interfaz {@link ProfileService}.
+ * Gestiona perfiles de usuario, actualizaciones de avatar y recuperación de hilos específicos del perfil.
+ */
 @Service
 @RequiredArgsConstructor
 public class ProfileServiceImpl implements ProfileService {
@@ -45,18 +53,33 @@ public class ProfileServiceImpl implements ProfileService {
     @Value("${app.default-avatar-url}")
     private String defaultAvatarUrl;
 
+
+    /**
+     * Retrieves public profile information for a given username.
+     * Includes context-aware data (isFollowing, isBlocked) relative to the viewer.
+     * <p>
+     * Recupera información de perfil público para un nombre de usuario dado.
+     * Incluye datos conscientes del contexto (isFollowing, isBlocked) relativos al espectador.
+     *
+     * @param username The username to look up.
+     *                 El nombre de usuario a buscar.
+     * @return The profile DTO.
+     *         El DTO del perfil.
+     * @throws EntityNotFoundException If the user does not exist.
+     *                                 Si el usuario no existe.
+     */
     @Override
     @Transactional(readOnly = true)
     public ProfileResponseDto getProfile(String username) {
-        // 1. Obtener el usuario del perfil que se está visitando.
+        // 1. Get Profile User / Obtener Usuario del Perfil
         User profileUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + username));
+                .orElseThrow(() -> new EntityNotFoundException("User not found / Usuario no encontrado: " + username));
 
-        // 2. Obtener los contadores objetivos del perfil.
+        // 2. Fetch real-time counters / Obtener contadores en tiempo real
         long followersCount = followRepository.countByUserFollowed(profileUser);
         long followingCount = followRepository.countByUserFollower(profileUser);
 
-        // 3. Obtener el contexto de autenticación del usuario que está haciendo la petición.
+        // 3. Get Current User Context / Obtener Contexto del Usuario Actual
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         // --- Lógica para datos que dependen del espectador ---
@@ -72,20 +95,16 @@ public class ProfileServiceImpl implements ProfileService {
 
         boolean isBlocked = false;
         if (currentUser != null) {
+            // Check Block Status / Verificar Estado de Bloqueo
             isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
                     blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
-        }
 
-        // 4. Lógica si el espectador está autenticado.
-        if (currentUser != null) {
-
-            // a) Calculamos 'isFollowing'
+            // Check Following Status / Verificar Estado de Seguimiento
             isFollowing = followRepository.existsByUserFollowerAndUserFollowed(currentUser, profileUser);
 
-            // b) Calculamos 'threadsAvailableToday' SÓLO si el espectador es el dueño del perfil.
+            // Calculate threads availability only for own profile
+            // Calcular disponibilidad de hilos solo para el propio perfil
             if (profileUser.getUsername().equals(currentUser.getUsername())) {
-                // USAMOS EL MÉTODO CENTRALIZADO DEL THREADSERVICE
-                // Esto garantiza que el cálculo sea consistente con la lógica de creación/borrado
                 threadsAvailableToday = (long) threadService.getThreadsAvailableToday(currentUser);
             }
         }
@@ -109,38 +128,70 @@ public class ProfileServiceImpl implements ProfileService {
         );
     }
 
+    /**
+     * Retrieves threads created by a specific user (Profile Feed).
+     * Filters out content if blocking exists between viewer and profile owner.
+     * <p>
+     * Recupera hilos creados por un usuario específico (Feed de Perfil).
+     * Filtra contenido si existe bloqueo entre el espectador y el dueño del perfil.
+     *
+     * @param username The profile username.
+     *                 El nombre de usuario del perfil.
+     * @param pageable Pagination info.
+     *                 Información de paginación.
+     * @return A Page of enriched threads.
+     *         Una Página de hilos enriquecidos.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getThreadsForUser(String username, Pageable pageable) {
-        // Obtener el usuario del perfil que se está visitando.
+        // Target Profile User / Usuario Perfil Objetivo
         User profileUser = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found / Usuario no encontrado"));
 
-        // Obtener el usuario que está viendo la página (el que está logueado).
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        // Verificar que el usuario no este bloqueado
-        boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
-                blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
-
-        if (isBlocked) {
-            // Si hay un bloqueo, simplemente devolvemos una página vacía.
-            return Page.empty(pageable);
+        // Current Viewer (Safe cast check) / Espectador Actual (Verificación de cast segura)
+        User currentUser = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof User) {
+            currentUser = (User) auth.getPrincipal();
         }
 
-        // Buscamos los hilos del 'profileUser'.
-        // Asegúrate de que tu repositorio filtre 'isDeleted = false' en esta consulta,
-        // o usa una consulta personalizada si no lo hace por defecto.
+        // Check Block / Verificar Bloqueo
+        if (currentUser != null) {
+            boolean isBlocked = blockRepository.existsByBlockerAndBlocked(currentUser, profileUser) ||
+                    blockRepository.existsByBlockerAndBlocked(profileUser, currentUser);
+
+            if (isBlocked) {
+                return Page.empty(pageable);
+            }
+        }
+
+        // Fetch threads (Repository handles 'isDeleted' check)
+        // Obtener hilos (El repositorio maneja la verificación 'isDeleted')
         Page<ThreadClass> threadPage = threadRepository.findByUserWithDetails(profileUser, pageable);
 
-        // Enriquecemos la respuesta usando el 'currentUser' como contexto.
-        return threadPage.map(thread -> threadEnricher.enrich(thread, currentUser));
+        // Enrich response / Enriquecer respuesta
+        User finalCurrentUser = currentUser; // Final for lambda
+        return threadPage.map(thread -> threadEnricher.enrich(thread, finalCurrentUser));
     }
 
+    /**
+     * Updates basic profile information (display name, biography).
+     * <p>
+     * Actualiza información básica del perfil (nombre para mostrar, biografía).
+     *
+     * @param username The username.
+     *                 El nombre de usuario.
+     * @param update   The DTO with new data.
+     *                 El DTO con nuevos datos.
+     * @return The updated profile DTO.
+     *         El DTO del perfil actualizado.
+     */
     @Override
+    @Transactional
     public ProfileResponseDto updateProfile(String username, ProfileUpdateRequestDto update) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found / Usuario no encontrado"));
 
         if (update.displayName() != null && !update.displayName().isBlank()) {
             user.setDisplayName(update.displayName());
@@ -154,11 +205,25 @@ public class ProfileServiceImpl implements ProfileService {
         return getProfile(username);
     }
 
+    /**
+     * Updates the user's avatar image.
+     * Validates file type and presence.
+     * <p>
+     * Actualiza la imagen de avatar del usuario.
+     * Valida el tipo de archivo y su presencia.
+     *
+     * @param username The username.
+     *                 El nombre de usuario.
+     * @param file     The image file.
+     *                 El archivo de imagen.
+     * @return The download URI of the new avatar.
+     *         La URI de descarga del nuevo avatar.
+     */
     @Override
     @Transactional
     public String updateAvatar(String username, MultipartFile file) {
         if (file.isEmpty()) {
-            throw new RuntimeException("El archivo está vacío.");
+            throw new IllegalArgumentException("File is empty / El archivo está vacío.");
         }
 
         String contentType = file.getContentType();
@@ -182,6 +247,16 @@ public class ProfileServiceImpl implements ProfileService {
         return fileDownloadUri;
     }
 
+    /**
+     * Retrieves basic profile info for data export (GDPR compliance).
+     * <p>
+     * Recupera información básica del perfil para exportación de datos (cumplimiento GDPR).
+     *
+     * @param username The username.
+     *                 El nombre de usuario.
+     * @return Data download DTO.
+     *         DTO de descarga de datos.
+     */
     @Override
     @Transactional(readOnly = true)
     public UserProfileDownloadDto getProfileForDownload(String username) {

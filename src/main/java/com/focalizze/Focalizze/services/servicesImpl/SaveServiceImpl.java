@@ -10,6 +10,7 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.SaveService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -23,6 +24,13 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Implementation of the {@link SaveService} interface.
+ * Handles saving threads (bookmarks) and retrieving the saved threads feed.
+ * <p>
+ * Implementación de la interfaz {@link SaveService}.
+ * Maneja el guardado de hilos (marcadores) y la recuperación del feed de hilos guardados.
+ */
 @Service
 @RequiredArgsConstructor
 public class SaveServiceImpl implements SaveService {
@@ -33,13 +41,25 @@ public class SaveServiceImpl implements SaveService {
     private final UserRepository userRepository;
     private final BlockRepository blockRepository;
 
+    /**
+     * Toggles the saved state of a thread for the current user.
+     * <p>
+     * Alterna el estado guardado de un hilo para el usuario actual.
+     *
+     * @param threadId    The ID of the thread.
+     *                    El ID del hilo.
+     * @param currentUser The user performing the action.
+     *                    El usuario que realiza la acción.
+     * @throws EntityNotFoundException If the thread does not exist.
+     *                                 Si el hilo no existe.
+     */
     @Override
     @Transactional
     public void toggleSave(Long threadId, User currentUser) {
         // 1. Validar que el hilo exista.
         // 1. Validate that the thread exists.
         ThreadClass thread = threadRepository.findById(threadId)
-                .orElseThrow(() -> new RuntimeException("Thread no encontrado con id: " + threadId));
+                .orElseThrow(() -> new EntityNotFoundException("Thread not found / Hilo no encontrado: " + threadId));
 
         // 2. Comprobar si el usuario ya ha guardado este hilo.
         // 2. Check if the user has already saved this thread.
@@ -66,34 +86,45 @@ public class SaveServiceImpl implements SaveService {
         threadRepository.save(thread);
     }
 
+    /**
+     * Retrieves a paginated list of threads saved by the current user.
+     * Filters out threads if the author is blocked.
+     * <p>
+     * Recupera una lista paginada de hilos guardados por el usuario actual.
+     * Filtra hilos si el autor está bloqueado.
+     *
+     * @param pageable Pagination info.
+     *                 Información de paginación.
+     * @return A Page of enriched threads.
+     *         Una Página de hilos enriquecidos.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getSavedThreadsForCurrentUser(Pageable pageable) {
-        // 1. Obtenemos al usuario autenticado.
-        User currentUser = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        // 1. Get User Safely
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof User currentUser)) {
+            throw new IllegalStateException("Authentication principal is not a User entity.");
+        }
 
-        // 2. Buscamos en la tabla 'saved_threads_tbl' para obtener la página correcta.
-        //    Esto nos da una página de entidades 'SavedThreads'.
+        // 2. Fetch SavedThreads Entities
         Page<SavedThreads> savedThreadsPage = savedThreadRepository.findByUserOrderByCreatedAtDesc(currentUser, pageable);
 
-        // Obtenemos la lista de todos los IDs bloqueados relevantes.
-        Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
-        Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+        // 3. Get Blocked IDs
         Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.addAll(blockedByCurrentUser);
-        allBlockedIds.addAll(whoBlockedCurrentUser);
+        allBlockedIds.addAll(blockRepository.findBlockedUserIdsByBlocker(currentUser.getId()));
+        allBlockedIds.addAll(blockRepository.findUserIdsWhoBlockedUser(currentUser.getId()));
 
-        // 3. Extraemos las entidades 'ThreadClass' de las entidades 'SavedThreads'.
+        // 4. Extract and Filter Threads
         List<ThreadClass> threads = savedThreadsPage.getContent().stream()
                 .map(SavedThreads::getThread)
-                // Nos quedamos solo con los hilos cuyo autor NO esté en la lista de bloqueados.
                 .filter(thread -> !allBlockedIds.contains(thread.getUser().getId()))
                 .toList();
 
-        // 4. Enriquecemos esta lista de hilos con la información de interacción.
+        // 5. Enrich
         List<FeedThreadDto> enrichedDtoList = threadEnricher.enrichList(threads, currentUser);
 
-        // 5. Creamos y devolvemos un nuevo objeto Page con el contenido enriquecido.
+        // 6. Return Page
         return new PageImpl<>(enrichedDtoList, pageable, savedThreadsPage.getTotalElements());
     }
 

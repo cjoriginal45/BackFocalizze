@@ -23,6 +23,13 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * Implementation of the {@link RecommendationService} interface.
+ * Generates personalized thread recommendations based on user interests and social proof scoring.
+ * <p>
+ * Implementación de la interfaz {@link RecommendationService}.
+ * Genera recomendaciones de hilos personalizadas basadas en intereses del usuario y puntaje de prueba social.
+ */
 @Service
 @RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
@@ -33,46 +40,52 @@ public class RecommendationServiceImpl implements RecommendationService {
     private final FeedbackService feedbackService;
     private final BlockRepository blockRepository;
 
-    // Pesos para el algoritmo de scoring
+    // Scoring weights / Pesos de puntuación
     private static final double LIKE_WEIGHT = 0.5;
     private static final double COMMENT_WEIGHT = 1.5;
     private static final double SAVE_WEIGHT = 2.0;
     private static final double RECENCY_WEIGHT = 1.2;
 
+    /**
+     * Calculates and returns a list of recommended threads.
+     * <p>
+     * Calcula y devuelve una lista de hilos recomendados.
+     *
+     * @param currentUser The user to generate recommendations for.
+     *                    El usuario para quien generar recomendaciones.
+     * @param limit       The maximum number of recommendations.
+     *                    El número máximo de recomendaciones.
+     * @return List of {@link DiscoverItemDto}.
+     *         Lista de {@link DiscoverItemDto}.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<DiscoverItemDto> getRecommendations(User currentUser, int limit) {
-        // 1. Obtener IDs de usuarios y categorías que el usuario actual sigue.
+        // 1. Gather Context Data / Recopilar Datos de Contexto
         User userWithFollows = userRepository.findByIdWithFollows(currentUser.getId()).orElse(currentUser);
 
+        // Collect mutable lists for potential "-1L" insertion
         List<Long> followedUserIds = userWithFollows.getFollowing().stream()
                 .map(f -> f.getUserFollowed().getId())
-                .collect(Collectors.toList()); // Usamos collect para que la lista sea mutable si es necesario
+                .collect(Collectors.toCollection(ArrayList::new));
 
         List<Long> followedCategoryIds = userWithFollows.getFollowedCategories().stream()
                 .map(cf -> cf.getCategory().getId())
-                .collect(Collectors.toList());
+                .collect(Collectors.toCollection(ArrayList::new));
 
-        // --- NUEVO: OBTENER HILOS OCULTOS ---
-        Set<Long> hiddenThreadIds = feedbackService.getHiddenThreadIds(currentUser);
-
-        Set<Long> blockedByCurrentUser = blockRepository.findBlockedUserIdsByBlocker(currentUser.getId());
-        Set<Long> whoBlockedCurrentUser = blockRepository.findUserIdsWhoBlockedUser(currentUser.getId());
+        Set<Long> hiddenThreadIds = new HashSet<>(feedbackService.getHiddenThreadIds(currentUser));
 
         Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.addAll(blockedByCurrentUser);
-        allBlockedIds.addAll(whoBlockedCurrentUser);
+        allBlockedIds.addAll(blockRepository.findBlockedUserIdsByBlocker(currentUser.getId()));
+        allBlockedIds.addAll(blockRepository.findUserIdsWhoBlockedUser(currentUser.getId()));
 
-        // --- PROTECCIÓN CONTRA LISTAS VACÍAS ---
-        // JPA puede lanzar error si pasamos listas vacías a una cláusula IN o NOT IN.
-        // Agregamos un ID ficticio (-1) si están vacías para evitar el error SQL.
+        // SQL Safety: Insert dummy ID to prevent empty IN clause errors
         if (followedUserIds.isEmpty()) followedUserIds.add(-1L);
         if (followedCategoryIds.isEmpty()) followedCategoryIds.add(-1L);
         if (hiddenThreadIds.isEmpty()) hiddenThreadIds.add(-1L);
         if (allBlockedIds.isEmpty()) allBlockedIds.add(-1L);
 
-        // 2. SELECCIÓN DE CANDIDATOS
-        // Ahora pasamos 'hiddenThreadIds' al repositorio.
+        // Fetch Candidates / Obtener Candidatos
         List<ThreadClass> candidates = threadRepository.findRecommendationCandidates(
                 currentUser.getId(),
                 followedUserIds,
@@ -82,13 +95,13 @@ public class RecommendationServiceImpl implements RecommendationService {
                 PageRequest.of(0, 100)
         );
 
-        // 3. SCORING Y RANKING
+        // Score and Rank / Puntuar y Clasificar
         List<ScoredThread> scoredThreads = candidates.stream()
                 .map(this::calculateScore)
                 .sorted(Comparator.comparingDouble(ScoredThread::score).reversed())
                 .toList();
 
-        // 4. DIVERSIFICACIÓN Y RAZÓN
+        // Diversification & Reason Assignment / Diversificación y Asignación de Razón
         List<DiscoverItemDto> recommendations = new ArrayList<>();
         Set<Long> usedAuthors = new HashSet<>();
 
@@ -120,11 +133,10 @@ public class RecommendationServiceImpl implements RecommendationService {
             }
         }
 
-        // --- FALLBACK (PLAN B) ---
-        // Si faltan recomendaciones, rellenamos con hilos populares (excluyendo los ocultos)
+        // 5. Fallback Strategy / Estrategia de Respaldo
         if (recommendations.size() < limit) {
-            // Reutilizamos la lógica de búsqueda general, pero filtramos manualmente los ocultos aquí
-            // para no crear otro método complejo en el repositorio solo para el fallback.
+            // Fill remaining slots with trending content (filtered manually)
+            // Llenar espacios restantes con contenido en tendencia (filtrado manualmente)
             Page<ThreadClass> fallbackThreads = threadRepository.findThreadsForDiscover(
                     currentUser.getId(), followedUserIds, allBlockedIds, PageRequest.of(0, 20)
             );
@@ -152,6 +164,11 @@ public class RecommendationServiceImpl implements RecommendationService {
         return recommendations;
     }
 
+    /**
+     * Internal scoring algorithm.
+     * <p>
+     * Algoritmo de puntuación interno.
+     */
     private ScoredThread calculateScore(ThreadClass thread) {
         double engagementScore = (thread.getLikeCount() * LIKE_WEIGHT) +
                 (thread.getCommentCount() * COMMENT_WEIGHT) +

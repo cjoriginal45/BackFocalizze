@@ -7,6 +7,7 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.services.InteractionLimitService;
 import com.focalizze.Focalizze.services.LikeService;
 import com.focalizze.Focalizze.services.NotificationService;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,13 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
+/**
+ * Implementation of the {@link LikeService} interface.
+ * Handles the logic for toggling likes on threads and managing associated side effects.
+ * <p>
+ * Implementación de la interfaz {@link LikeService}.
+ * Maneja la lógica para alternar "me gusta" en hilos y gestionar efectos secundarios asociados.
+ */
 @Service
 @RequiredArgsConstructor
 public class LikeServiceImpl implements LikeService {
@@ -25,53 +33,64 @@ public class LikeServiceImpl implements LikeService {
     private final InteractionLogRepository interactionLogRepository;
     private final NotificationService notificationService;
 
+    /**
+     * Toggles the like status of a thread for the current user.
+     * Manages interaction limits (deducting or refunding quota) and notifications.
+     * <p>
+     * Alterna el estado de "me gusta" de un hilo para el usuario actual.
+     * Gestiona los límites de interacción (deduciendo o reembolsando cupo) y notificaciones.
+     *
+     * @param threadId    The ID of the thread.
+     *                    El ID del hilo.
+     * @param currentUser The user performing the action.
+     *                    El usuario que realiza la acción.
+     * @throws EntityNotFoundException If the thread does not exist.
+     *                                 Si el hilo no existe.
+     */
     @Override
     @Transactional
     public void toggleLike(Long threadId, User currentUser) {
-        // Validar que el hilo exista.
-        // Validate that the thread exists.
+        // 1. Validate thread existence / Validar existencia del hilo
         ThreadClass thread = threadRepository.findById(threadId)
-                .orElseThrow(() -> new RuntimeException("Thread no encontrado con id: " + threadId));
+                .orElseThrow(() -> new EntityNotFoundException("Thread not found / Hilo no encontrado: " + threadId));
 
-        // Comprobar si el usuario ya le ha dado like a este hilo.
-        // Check if the user has already liked this thread.
+        // 2. Check existing like / Comprobar like existente
         Optional<Like> existingLike = likeRepository.findByUserAndThread(currentUser, thread);
 
         if (existingLike.isPresent()) {
-            // Si el like ya existe, lo eliminamos (quitar like).
-            // If the like already exists, we delete it (remove like).
+            // REMOVE LIKE (Undo) / QUITAR LIKE (Deshacer)
             likeRepository.delete(existingLike.get());
-            thread.setLikeCount(thread.getLikeCount() - 1);
-            //    Comprobamos si el 'like' que estamos eliminando fue creado HOY.
+            thread.setLikeCount(Math.max(0, thread.getLikeCount() - 1));
+
+            // Refund logic: Only if the like was created today
+            // Lógica de reembolso: Solo si el like fue creado hoy
             LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
             if (existingLike.get().getCreatedAt().isAfter(startOfToday)) {
-                // Si fue creado hoy, entonces sí procedemos con el reembolso.
-                interactionLimitService.refundInteraction(currentUser,InteractionType.LIKE);
+                interactionLimitService.refundInteraction(currentUser, InteractionType.LIKE);
             }
+
         } else {
             // Si el like no existe, lo creamos (dar like).
             // If the like does not exist, we create it (give like).
 
-            // Verificar si el usuario puede dar like.
+            // 1. Check limits / Verificar límites
             interactionLimitService.checkInteractionLimit(currentUser);
 
-            //fecha de creacion
-            LocalDateTime date = LocalDateTime.now();
-
-            // Si puede, creamos el like.
+            // 2. Create Like entity / Crear entidad Like
             Like newLike = Like.builder()
                     .user(currentUser)
-                    .createdAt(date)
+                    .createdAt(LocalDateTime.now())
                     .thread(thread)
                     .build();
             likeRepository.save(newLike);
-            // Actualizamos el contador.
-            // We update the counter.
+
+            // 3. Update counter / Actualizar contador
             thread.setLikeCount(thread.getLikeCount() + 1);
 
-            // Registramos la interacción.
+            // 4. Record interaction / Registrar interacción
             interactionLimitService.recordInteraction(currentUser, InteractionType.LIKE);
 
+            // 5. Notify author (if not self) / Notificar autor (si no es uno mismo)
             if (!thread.getUser().getId().equals(currentUser.getId())) {
                 notificationService.createAndSendNotification(
                         thread.getUser(),
@@ -82,10 +101,8 @@ public class LikeServiceImpl implements LikeService {
             }
         }
 
-        // Guardamos la entidad del hilo con el contador actualizado.
-        // La transacción se encargará de persistir este cambio.
-        // We save the thread entity with the updated counter.
-        // The transaction will be responsible for persisting this change.
+        // Persist thread changes (like count)
+        // Persistir cambios del hilo (conteo de likes)
         threadRepository.save(thread);
     }
 }

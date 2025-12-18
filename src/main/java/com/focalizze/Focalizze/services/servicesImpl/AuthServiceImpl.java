@@ -9,36 +9,51 @@ import com.focalizze.Focalizze.models.UserRole;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.AuthService;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 
+/**
+ * Implementation of the {@link AuthService} interface.
+ * Handles user registration and authentication logic.
+ * <p>
+ * Implementación de la interfaz {@link AuthService}.
+ * Maneja la lógica de registro y autenticación de usuarios.
+ */
 @Service
+@RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final RegisterMapper registerMapper;
 
-    public AuthServiceImpl(UserRepository userRepository,
-                           PasswordEncoder passwordEncoder,
-                           RegisterMapper registerMapper) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.registerMapper = registerMapper;
-    }
-
+    /**
+     * Registers a new user in the system.
+     * Performs validations for password matching and username/email availability.
+     * <p>
+     * Registra un nuevo usuario en el sistema.
+     * Realiza validaciones para la coincidencia de contraseñas y disponibilidad de nombre de usuario/correo.
+     *
+     * @param registerRequest The registration data.
+     *                        Los datos de registro.
+     * @return The response containing basic user info.
+     *         La respuesta que contiene información básica del usuario.
+     * @throws IllegalArgumentException   If passwords do not match.
+     *                                    Si las contraseñas no coinciden.
+     * @throws UserAlreadyExistsException If username or email is taken.
+     *                                    Si el nombre de usuario o correo ya está en uso.
+     */
     @Override
     @Transactional
     public RegisterResponse registerUser(RegisterRequest registerRequest) {
 
-        // Validate passwords match / Validar la coincidencia de contraseñas
         if (!registerRequest.password().equals(registerRequest.confirmPassword())) {
             throw new IllegalArgumentException("Las contraseñas no coinciden");
         }
 
-        // Check if user already exists / Comprueba si el usuario ya existe
         if (!userRepository.findUserNameAvailable(registerRequest.username())) {
             throw new UserAlreadyExistsException("El nombre de usuario ya está en uso");
         }
@@ -47,14 +62,20 @@ public class AuthServiceImpl implements AuthService {
             throw new UserAlreadyExistsException("El correo electrónico ya está registrado");
         }
 
-        // Create and save user / Crear y guardar usuario
         User user = createUserFromRequest(registerRequest);
         User savedUser = userRepository.save(user);
 
-        // Convert to Response using RegisterMapper / Convertir a respuesta usando RegisterMapper
         return registerMapper.toRegisterResponse(savedUser);
     }
 
+    /**
+     * Helper method to build a User entity from the request.
+     * <p>
+     * Método auxiliar para construir una entidad User a partir de la solicitud.
+     *
+     * @param request The request DTO. / El DTO de solicitud.
+     * @return The built User entity. / La entidad User construida.
+     */
     private User createUserFromRequest(RegisterRequest request) {
         return User.builder()
                 .username(request.username())

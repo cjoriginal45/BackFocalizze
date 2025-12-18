@@ -7,6 +7,8 @@ import com.focalizze.Focalizze.services.AuthService;
 import com.focalizze.Focalizze.services.EmailService;
 import com.focalizze.Focalizze.utils.JwtUtil;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -20,30 +22,44 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Random;
 
+/**
+ * Controller handling authentication endpoints.
+ * Includes Registration, Login, and Two-Factor Authentication (2FA) verification.
+ * <p>
+ * Controlador que maneja los endpoints de autenticación.
+ * Incluye Registro, Inicio de sesión y Verificación de Autenticación de Dos Factores (2FA).
+ */
 @RestController
 @RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@Slf4j
 public class AuthController {
 
     private final AuthService authService;
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
-    private final JwtUtil jwtUtil; // Tu utilidad corregida
+    private final JwtUtil jwtUtil;
     private final EmailService emailService;
 
     @Value("${app.default-avatar-url}")
     private String defaultAvatarUrl;
 
-    public AuthController(AuthService authService, AuthenticationManager authenticationManager, UserRepository userRepository, JwtUtil jwtUtil, EmailService emailService) {
-        this.authService = authService;
-        this.authenticationManager = authenticationManager;
-        this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
-        this.emailService = emailService;
-    }
+    // SecureRandom is better for security-sensitive random generation
+    // SecureRandom es mejor para la generación aleatoria sensible a la seguridad
+    private static final SecureRandom secureRandom = new SecureRandom();
 
+    /**
+     * Registers a new user.
+     * <p>
+     * Registra un nuevo usuario.
+     *
+     * @param registerRequest The registration details. / Los detalles de registro.
+     * @return The registered user info. / La información del usuario registrado.
+     */
     @PostMapping("/register")
     public ResponseEntity<RegisterResponse> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
         RegisterResponse response = authService.registerUser(registerRequest);
@@ -51,90 +67,100 @@ public class AuthController {
     }
 
     // --- PASO 1: LOGIN ---
+    /**
+     * Authenticates a user. Checks credentials and banned status.
+     * If 2FA is enabled, sends a code instead of a JWT.
+     * <p>
+     * Autentica a un usuario. Verifica credenciales y estado de baneo.
+     * Si 2FA está activado, envía un código en lugar de un JWT.
+     *
+     * @param request The login credentials. / Las credenciales de inicio de sesión.
+     * @return Login response (JWT or 2FA requirement). / Respuesta de login (JWT o requerimiento 2FA).
+     */
     @PostMapping("/login")
     public ResponseEntity<LoginResponseDto> login(@RequestBody LoginRequestDto request) {
 
         try {
-            // Esto ahora llama internamente a user.isAccountNonLocked()
+            // Attempt authentication once
+            // Intentar autenticación una vez
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.identifier(), request.password())
             );
         } catch (BadCredentialsException e) {
+            log.warn("Login failed: Bad credentials for identifier: {}", request.identifier());
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(createErrorResponse("Credenciales inválidas"));
+                    .body(createErrorResponse("Invalid credentials / Credenciales inválidas"));
 
         } catch (LockedException e) {
-            // --- CAPTURAMOS EL BANEO AQUÍ ---
+            // Handle Banned/Suspended Users
+            // Manejar Usuarios Baneados/Suspendidos
+            log.warn("Login failed: Account locked for identifier: {}", request.identifier());
 
-            // Buscamos al usuario para darle detalles del baneo
-            User user = userRepository.findByUsername(request.identifier())
-                    .orElse(null); // Si llegó acá, el usuario existe, pero por seguridad...
-
-            String msg = "Tu cuenta ha sido suspendida.";
+            User user = userRepository.findByUsername(request.identifier()).orElse(null);
+            String msg = "Your account has been suspended. / Tu cuenta ha sido suspendida.";
 
             if (user != null) {
                 if (user.getBanExpiresAt() == null) {
-                    msg = "Tu cuenta ha sido suspendida permanentemente. Motivo: " + user.getBanReason();
+                    msg = "Your account has been permanently suspended. Reason: " + user.getBanReason();
                 } else {
-                    msg = "Suspensión hasta: " + user.getBanExpiresAt().toString() + ". Motivo: " + user.getBanReason();
+                    msg = "Suspension until: " + user.getBanExpiresAt().toString() + ". Reason: " + user.getBanReason();
                 }
             }
-
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(createErrorResponse(msg));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(createErrorResponse(msg));
         }
 
-        // 1. Validar Credenciales
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(request.identifier(), request.password())
-            );
-        } catch (BadCredentialsException e) {
-            System.out.println(">>> ERROR: BadCredentialsException saltó.");
-            // Devolvemos un DTO con mensaje de error (o puedes lanzar excepción y manejarla con ControllerAdvice)
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new LoginResponseDto(null, null, null, null, null, null, null,false, false, "Credenciales inválidas"));
-        }
-
-        // 2. Obtener Usuario
+        // 2. Fetch User (Authenticated successfully)
+        // 2. Obtener Usuario (Autenticado exitosamente)
         User user = userRepository.findByUsername(request.identifier())
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
+                .orElseThrow(() -> new UsernameNotFoundException("User not found / Usuario no encontrado"));
 
-        // 3. Verificar si tiene 2FA activado
+
+        // 3. Check 2FA
+        // 3. Verificar 2FA
         if (user.isTwoFactorEnabled()) {
-            // A. Generar Código
-            String code = String.valueOf(new Random().nextInt(900000) + 100000);
+            // A. Generate Code (Secure)
+            String code = String.valueOf(secureRandom.nextInt(900000) + 100000);
 
-            // B. Guardar en BD
+            // B. Save to DB
             user.setTwoFactorCode(code);
             user.setTwoFactorCodeExpiry(LocalDateTime.now().plusMinutes(5));
             userRepository.save(user);
 
-            // C. Enviar Email
+            // C. Send Email
             emailService.sendTwoFactorCode(user.getEmail(), code);
 
-            // D. Responder "Requiere 2FA" (Sin token, Sin datos de usuario)
+            // D. Return "Requires 2FA" response
             return ResponseEntity.ok(new LoginResponseDto(
-                    user.getId(), // Podemos devolver el ID para facilitar el siguiente paso
-                    null, null, null, null, null, null,true, // isTwoFactorEnabled = true
-                    true, // requiresTwoFactor = TRUE
-                    "Código de verificación enviado al correo."
+                    user.getId(),
+                    null, null, null, null, null, null,
+                    true, // isTwoFactorEnabled
+                    true, // requiresTwoFactor
+                    "Verification code sent to email. / Código de verificación enviado al correo."
             ));
         }
 
-        // 4. Si NO tiene 2FA, Login Exitoso Directo
+        // 4. No 2FA -> Direct Success
+        // 4. No 2FA -> Éxito Directo
         String jwtToken = jwtUtil.generateToken(user);
         return ResponseEntity.ok(buildSuccessResponse(user, jwtToken));
     }
 
     // --- PASO 2: VERIFICAR CÓDIGO ---
+    /**
+     * Verifies the 2FA OTP code.
+     * <p>
+     * Verifica el código OTP de 2FA.
+     *
+     * @param request The verification details. / Los detalles de verificación.
+     * @return Login response with JWT if successful. / Respuesta de login con JWT si es exitoso.
+     */
     @PostMapping("/verify-2fa")
     public ResponseEntity<LoginResponseDto> verifyTwoFactor(@RequestBody VerifyOtpRequestDto request) {
 
         User user = userRepository.findByUsername(request.username())
                 .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado"));
 
-        // 1. Validaciones
+        // 1. Validations
         if (user.getTwoFactorCode() == null || user.getTwoFactorCodeExpiry() == null) {
             return ResponseEntity.badRequest()
                     .body(createErrorResponse("No hay una solicitud de 2FA pendiente."));
@@ -150,6 +176,7 @@ public class AuthController {
                     .body(createErrorResponse("Código incorrecto."));
         }
 
+        // 2. Success: Clear code
         // 2. Éxito: Limpiar código
         user.setTwoFactorCode(null);
         user.setTwoFactorCodeExpiry(null);
@@ -161,9 +188,7 @@ public class AuthController {
         return ResponseEntity.ok(buildSuccessResponse(user, jwtToken));
     }
 
-    // --- MÉTODOS PRIVADOS DE AYUDA (Para no repetir código) ---
-
-    // Construye la respuesta exitosa completa con todos los datos que necesita el frontend
+    // --- HELPER METHODS / MÉTODOS DE AYUDA ---
     private LoginResponseDto buildSuccessResponse(User user, String token) {
         return new LoginResponseDto(
                 user.getId(),

@@ -1,5 +1,6 @@
 package com.focalizze.Focalizze.utils;
 
+import org.springframework.lang.NonNull;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -14,6 +15,13 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filter that executes on every request to validate JWT tokens.
+ * Sets the authentication context if the token is valid.
+ * <p>
+ * Filtro que se ejecuta en cada petición para validar tokens JWT.
+ * Establece el contexto de autenticación si el token es válido.
+ */
 @Component
 public class JwtRequestFilter extends OncePerRequestFilter {
 
@@ -26,7 +34,9 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain chain)
             throws ServletException, IOException {
 
         final String authorizationHeader = request.getHeader("Authorization");

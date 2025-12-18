@@ -7,6 +7,7 @@ import com.focalizze.Focalizze.repository.ThreadRepository;
 import com.focalizze.Focalizze.repository.UserRepository;
 import com.focalizze.Focalizze.services.FeedService;
 import com.focalizze.Focalizze.utils.ThreadEnricher;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -20,6 +21,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Implementation of the {@link FeedService} interface.
+ * Orchestrates the aggregation of threads from followed users, categories, and self.
+ * <p>
+ * Implementación de la interfaz {@link FeedService}.
+ * Orquesta la agregación de hilos de usuarios seguidos, categorías y propios.
+ */
 @Service
 @RequiredArgsConstructor
 public class FeedServiceImpl implements FeedService {
@@ -27,14 +35,28 @@ public class FeedServiceImpl implements FeedService {
     private final ThreadEnricher threadEnricher;
     private final UserRepository userRepository;
 
+    /**
+     * Generates the "Following" feed for the authenticated user.
+     * Aggregates threads, filters blocked users, and enriches data (likes, saved status).
+     * <p>
+     * Genera el feed "Siguiendo" para el usuario autenticado.
+     * Agrega hilos, filtra usuarios bloqueados y enriquece datos (likes, estado guardado).
+     *
+     * @param pageable Pagination info. / Información de paginación.
+     * @return A {@link Page} of enriched {@link FeedThreadDto}.
+     *         Una {@link Page} de {@link FeedThreadDto} enriquecidos.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<FeedThreadDto> getFeed(Pageable pageable) {
+        //  Get authenticated user
+        // Obtener usuario autenticado
         String currentUsername = SecurityContextHolder.getContext().getAuthentication().getName();
         User currentUser = userRepository.findByUsername(currentUsername)
-                .orElseThrow(() -> new IllegalStateException("Usuario no encontrado"));
+                .orElseThrow(() -> new EntityNotFoundException("User not found / Usuario no encontrado"));
 
-        // 2. Extraemos las listas de IDs
+        // Extract IDs from Lazy Collections (Fetched inside transaction)
+        // Extraer IDs de Colecciones Lazy (Obtenidas dentro de la transacción)
         List<Long> followedUserIds = new ArrayList<>(
                 currentUser.getFollowing().stream()
                         .map(follow -> follow.getUserFollowed().getId())
@@ -47,9 +69,8 @@ public class FeedServiceImpl implements FeedService {
                         .toList()
         );
 
-        // --- CORRECCIÓN: EVITAR SQL ERROR EN LISTAS VACÍAS ---
-        // Si las listas están vacías, JPA puede lanzar error con "IN ()".
-        // Agregamos -1L (un ID que no existe) para que la query sea válida: "IN (-1)"
+        // Hibernate might generate invalid SQL for "IN ()". We add a dummy ID (-1L).
+        // Hibernate podría generar SQL inválido para "IN ()". Agregamos un ID ficticio (-1L).
         if (followedUserIds.isEmpty()) {
             followedUserIds.add(-1L);
         }
@@ -57,27 +78,21 @@ public class FeedServiceImpl implements FeedService {
             followedCategoryIds.add(-1L);
         }
 
-        // --- BLOQUEADOS ---
-        Set<Long> blockedUserIds = userRepository.findBlockedUserIdsByBlocker(currentUser.getId());
-        Set<Long> userIdsWhoBlockedCurrentUser = userRepository.findUserIdsWhoBlockedUser(currentUser.getId());
-
+        // --- BLOCKED USERS HANDLING / MANEJO DE USUARIOS BLOQUEADOS ---
         Set<Long> allBlockedIds = new HashSet<>();
-        allBlockedIds.addAll(blockedUserIds);
-        allBlockedIds.addAll(userIdsWhoBlockedCurrentUser);
+        allBlockedIds.addAll(userRepository.findBlockedUserIdsByBlocker(currentUser.getId()));
+        allBlockedIds.addAll(userRepository.findUserIdsWhoBlockedUser(currentUser.getId()));
 
         if (allBlockedIds.isEmpty()) {
-            allBlockedIds.add(-1L);
+            allBlockedIds.add(-1L); // SQL Safety / Seguridad SQL
         }
 
-        // --- ELIMINADO EL IF QUE RETORNABA PAGE.EMPTY ---
-        // Ahora siempre ejecutamos la consulta, porque currentUser.getId()
-        // siempre traerá al menos mis propios hilos.
-
-        // 3. Obtenemos la PÁGINA
+        // Query the Repository (Includes Self-Threads logic)
+        // Consultar el Repositorio (Incluye lógica de Hilos Propios)
         Page<ThreadClass> threadPage = threadRepository.findFollowingFeed(
                 followedUserIds,
                 followedCategoryIds,
-                currentUser.getId(), // Aquí se incluyen tus hilos
+                currentUser.getId(),
                 allBlockedIds,
                 pageable
         );

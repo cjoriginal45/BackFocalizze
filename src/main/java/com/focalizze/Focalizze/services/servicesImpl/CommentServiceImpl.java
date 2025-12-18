@@ -23,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -186,6 +187,10 @@ public class CommentServiceImpl  implements CommentService {
                 .build();
 
         CommentClass savedReply = commentRepository.save(reply);
+
+        if (savedReply.getReplies() == null) {
+            savedReply.setReplies(new ArrayList<>());
+        }
 
         // Actualizar contadores y registrar interacción
         thread.setCommentCount(thread.getCommentCount() + 1);
