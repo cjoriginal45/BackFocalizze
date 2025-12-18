@@ -6,15 +6,23 @@ import com.focalizze.Focalizze.models.UserRole;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+/**
+ * Mapper for User entities to DTOs and vice versa.
+ * Handles context-aware mapping (isFollowing, isBlocked).
+ * <p>
+ * Mapper para entidades Usuario a DTOs y viceversa.
+ * Maneja mapeo consciente del contexto (isFollowing, isBlocked).
+ */
 @Component
 public class UserMapper {
     @Value("${app.default-avatar-url}")
     private String defaultAvatarUrl;
 
     /**
-     * Convierte una entidad User a UserDto.
-     * Este método se usa cuando NO tenemos contexto de interacción (ej. endpoint /me),
-     * por lo que isFollowing e isBlocked se ponen en false por defecto.
+     * Converts User to UserDto without interaction context (defaults to false).
+     * Used for self-profile or admin views.
+     * <p>
+     * Convierte Usuario a UserDto sin contexto de interacción (por defecto falso).
      */
     public UserDto toDto(User user) {
         if (user == null) {
@@ -39,8 +47,9 @@ public class UserMapper {
     }
 
     /**
-     * Versión sobrecargada para cuando SÍ tenemos contexto de interacción.
-     * Útil para perfiles de otros usuarios, feeds, buscadores, etc.
+     * Converts User to UserDto with explicit interaction context.
+     * <p>
+     * Convierte Usuario a UserDto con contexto de interacción explícito.
      */
     public UserDto toDto(User user, boolean isFollowing, boolean isBlocked) {
         if (user == null) {
@@ -65,9 +74,8 @@ public class UserMapper {
     }
 
     /**
-     * Convierte un UserDto a una entidad User.
-     * NOTA: Los campos calculados (contadores, booleanos de estado) se ignoran
-     * porque no se deben persistir directamente desde un DTO de entrada.
+     * Converts UserDto to Entity.
+     * Note: Ignores transient fields.
      */
     public User toEntity(UserDto dto) {
         if (dto == null) {

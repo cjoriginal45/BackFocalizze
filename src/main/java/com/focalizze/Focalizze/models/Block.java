@@ -1,17 +1,21 @@
 package com.focalizze.Focalizze.models;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
+/**
+ * Entity representing a block relationship between two users.
+ * <p>
+ * Entidad que representa una relación de bloqueo entre dos usuarios.
+ */
+@Getter
+@Setter
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Data
 @Entity
 @Table(
         name = "block_tbl",
@@ -20,18 +24,31 @@ import java.time.LocalDateTime;
 public class Block {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
-    // El usuario que realiza la acción de bloquear.
+    /**
+     * The user who performed the block.
+     * El usuario que realizó el bloqueo.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blocker_id", nullable = false)
+    @ToString.Exclude
     private User blocker;
 
-    // El usuario que es bloqueado.
+    /**
+     * The user who was blocked.
+     * El usuario que fue bloqueado.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "blocked_id", nullable = false)
+    @ToString.Exclude
     private User blocked;
 
+    /**
+     * Timestamp when the block occurred.
+     * Marca de tiempo de cuándo ocurrió el bloqueo.
+     */
     @Column(nullable = false)
     private LocalDateTime createdAt;
 }

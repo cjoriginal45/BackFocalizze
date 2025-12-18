@@ -10,19 +10,30 @@ import org.springframework.beans.factory.annotation.Value;
 import java.time.LocalDateTime;
 import java.util.*;
 
-@AllArgsConstructor
-@Builder
+/**
+ * Entity representing a system user.
+ * Implements Spring Security's UserDetails for authentication.
+ * <p>
+ * Entidad que representa un usuario del sistema.
+ * Implementa UserDetails de Spring Security para la autenticación.
+ */
 @Getter
 @Setter
-@EqualsAndHashCode(of = {"id", "username", "email"})
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 @Entity
-@Table(name="user_tbl")
+@Table(name = "user_tbl")
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class User implements UserDetails {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
     private Long id;
 
+    // --- Credentials & Profile / Credenciales y Perfil ---
     @Column(unique = true, nullable = false)
     private String username;
 
@@ -39,120 +50,143 @@ public class User implements UserDetails {
 
     private String avatarUrl;
 
-    // CAMPO 1: Para la verificación en 2 pasos
+    @Enumerated(EnumType.STRING)
+    private UserRole role;
+
+    private LocalDateTime createdAt;
+
+
+    // --- Security & 2FA / Seguridad y 2FA ---
     @Column(nullable = false)
     @Builder.Default
     private boolean isTwoFactorEnabled = false;
 
-    // CAMPO 2: Para invalidar tokens (Logout masivo)
     @Column(nullable = false)
     @Builder.Default
-    private Integer tokenVersion = 0;
+    private Integer tokenVersion = 0; // For logout / Para cierre de sesión
 
-    private String twoFactorCode; // El código de 6 dígitos
+    private String twoFactorCode;
+    private LocalDateTime twoFactorCodeExpiry;
 
-    private LocalDateTime twoFactorCodeExpiry; // Cuándo vence el código
+    private String resetPasswordToken;
+    private LocalDateTime resetPasswordTokenExpiry;
 
+
+    // --- Moderation / Moderación ---
+    private boolean isBanned = false;
+    private LocalDateTime banExpiresAt;
+    private String banReason;
+    private LocalDateTime suspensionEndsAt;
+
+    // --- Limits & Counters / Límites y Contadores ---
+    private Integer dailyThreadsRemaining;
+    private Integer dailyInteractionsRemaining;
+    private Integer followingCount;
+    private Integer followersCount;
     @Formula("(SELECT count(*) FROM thread_tbl t WHERE t.user_id = id AND t.is_published = true AND t.is_deleted = false)")
     private Integer calculatedThreadCount;
 
-    private boolean isBanned = false;
-
-    private LocalDateTime banExpiresAt;
-
-    private String banReason;
-
+    // --- Theme / Tema ---
     @Column(name = "background_type")
+    @Builder.Default
     private String backgroundType = "default";
 
     @Column(name = "background_value")
     private String backgroundValue;
 
 
-    /**
-     * Este método devuelve la URL del avatar del usuario.
-     * Si el usuario no ha subido un avatar (avatarUrl es null),
-     * devuelve la URL del avatar por defecto definida en la configuración.
-     * @param defaultUrl La URL por defecto inyectada desde application.properties.
-     * @return Una URL de avatar válida.
-     */
-    public String getAvatarUrl(String defaultUrl) {
-        if (this.avatarUrl == null || this.avatarUrl.isBlank()) {
-            return defaultUrl;
-        }
-        return this.avatarUrl;
-    }
-    private Integer dailyThreadsRemaining;
-    @Enumerated(EnumType.STRING)
-    private UserRole role;
-    private Integer followingCount;
-    private Integer followersCount;
-    private Integer dailyInteractionsRemaining;
-    private LocalDateTime createdAt;
-    private String resetPasswordToken;
-    private LocalDateTime resetPasswordTokenExpiry;
-    private LocalDateTime suspensionEndsAt;
-
-    @OneToMany(mappedBy="user")
-    private List<SavedThreads> savedThreads;
-
-    @OneToMany(mappedBy="user")
-    private List<ThreadClass> threads;
-
-    @OneToMany(mappedBy="user")
-    private List<NotificationClass> notifications;
-
-    @OneToMany(mappedBy="triggerUser")
-    private List<NotificationClass> notificationsTrigger;
-
-    @OneToMany(mappedBy="user")
-    private List<CommentClass> comments;
-
-    @OneToMany(mappedBy="user")
-    private List<Like> likes;
-
-    @OneToMany(mappedBy = "userReporter")
-    private List<Report> reportsMade;
-
-    @OneToMany(mappedBy = "userReported")
-    private List<Report> reportsReceived;
+    // --- Relationships / Relaciones ---
+    @OneToMany(mappedBy = "user")
+    @Builder.Default
+    @ToString.Exclude
+    private List<SavedThreads> savedThreads = new ArrayList<>();
 
     @OneToMany(mappedBy = "user")
-    private List<InteractionLog> interactions;
+    @Builder.Default
+    @ToString.Exclude
+    private List<ThreadClass> threads = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    @Builder.Default
+    @ToString.Exclude
+    private List<NotificationClass> notifications = new ArrayList<>();
+
+    @OneToMany(mappedBy = "triggerUser")
+    @Builder.Default
+    @ToString.Exclude
+    private List<NotificationClass> notificationsTrigger = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    @Builder.Default
+    @ToString.Exclude
+    private List<CommentClass> comments = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Like> likes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "userReporter")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Report> reportsMade = new ArrayList<>();
+
+    @OneToMany(mappedBy = "userReported")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Report> reportsReceived = new ArrayList<>();
+
+    @OneToMany(mappedBy = "user")
+    @Builder.Default
+    @ToString.Exclude
+    private List<InteractionLog> interactions = new ArrayList<>();
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<CategoryFollow> followedCategories;
+    @Builder.Default
+    @ToString.Exclude
+    private Set<CategoryFollow> followedCategories = new HashSet<>();
 
-    @OneToMany(mappedBy="userFollower")
-    private List<Follow> following;
+    @OneToMany(mappedBy = "userFollower")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Follow> following = new ArrayList<>();
 
-    @OneToMany(mappedBy="userFollowed")
-    private List<Follow> followers;
+    @OneToMany(mappedBy = "userFollowed")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Follow> followers = new ArrayList<>();
 
     @OneToMany(mappedBy = "mentionedUser")
-    private List<Mention> mentions;
+    @Builder.Default
+    @ToString.Exclude
+    private List<Mention> mentions = new ArrayList<>();
 
-    @OneToMany(mappedBy="blocker")
-    private List<Block> blockedUser;
+    @OneToMany(mappedBy = "blocker")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Block> blockedUser = new ArrayList<>();
 
-    @OneToMany(mappedBy="blocked")
-    private List<Block> blockerUser;
+    @OneToMany(mappedBy = "blocked")
+    @Builder.Default
+    @ToString.Exclude
+    private List<Block> blockerUser = new ArrayList<>();
 
-    public User(){
-        this.savedThreads = new ArrayList<>();
-        this.comments = new ArrayList<>();
-        this.followers = new ArrayList<>();
-        this.following = new ArrayList<>();
-        this.likes = new ArrayList<>();
-        this.threads = new ArrayList<>();
-        this.notifications = new ArrayList<>();
-        this.reportsMade = new ArrayList<>();
-        this.reportsReceived = new ArrayList<>();
-        this.interactions = new ArrayList<>();
-        this.followedCategories = new HashSet<>();
-        this.mentions = new ArrayList<>();
-        this.blockedUser = new ArrayList<>();
-        this.blockerUser = new ArrayList<>();
+
+    // --- Helper Methods / Métodos Auxiliares ---
+    public String getAvatarUrl(String defaultUrl) {
+        return (this.avatarUrl == null || this.avatarUrl.isBlank()) ? defaultUrl : this.avatarUrl;
+    }
+
+    public boolean isSuspended() {
+        return suspensionEndsAt != null && suspensionEndsAt.isAfter(LocalDateTime.now());
+    }
+
+
+    // --- UserDetails Implementation ---
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.getRole().name()));
     }
 
     @Override
@@ -165,7 +199,6 @@ public class User implements UserDetails {
         return this.username;
     }
 
-
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -173,20 +206,15 @@ public class User implements UserDetails {
 
     @Override
     public boolean isAccountNonLocked() {
-        // 1. Si no está baneado, la cuenta NO está bloqueada (return true)
+        // 1. Not banned = Not locked
         if (!this.isBanned) {
             return true;
         }
-
-        // 2. Si está baneado, verificamos si es permanente o si ya expiró el tiempo
+        // 2. Banned permanently
         if (this.banExpiresAt == null) {
-            // Es permanente, así que la cuenta SÍ está bloqueada (return false)
             return false;
         }
-
-        // 3. Si tiene fecha de fin, verificamos si ya pasó esa fecha
-        // Si HOY es después de la fecha de expiración, desbloqueamos (true).
-        // Si no, sigue bloqueada (false).
+        // 3. Banned temporarily: Check if time has passed
         return LocalDateTime.now().isAfter(this.banExpiresAt);
     }
 
@@ -198,69 +226,5 @@ public class User implements UserDetails {
     @Override
     public boolean isEnabled() {
         return true;
-    }
-
-
-    public User(Long id, String username, String email, String password) {
-        this.id = id;
-        this.username = username;
-        this.email = email;
-        this.password = password;
-    }
-
-    @Override
-    public String toString() {
-        return "User{" +
-                "id=" + id +
-                ", username='" + username + '\'' +
-                ", email='" + email + '\'' +
-                ", password='" + password + '\'' +
-                ", displayName='" + displayName + '\'' +
-                ", biography='" + biography + '\'' +
-                ", avatarUrl='" + avatarUrl + '\'' +
-                ", isTwoFactorEnabled=" + isTwoFactorEnabled +
-                ", tokenVersion=" + tokenVersion +
-                ", twoFactorCode='" + twoFactorCode + '\'' +
-                ", twoFactorCodeExpiry=" + twoFactorCodeExpiry +
-                ", calculatedThreadCount=" + calculatedThreadCount +
-                ", isBanned=" + isBanned +
-                ", banExpiresAt=" + banExpiresAt +
-                ", banReason='" + banReason + '\'' +
-                ", backgroundType='" + backgroundType + '\'' +
-                ", backgroundValue='" + backgroundValue + '\'' +
-                ", dailyThreadsRemaining=" + dailyThreadsRemaining +
-                ", role=" + role +
-                ", followingCount=" + followingCount +
-                ", followersCount=" + followersCount +
-                ", dailyInteractionsRemaining=" + dailyInteractionsRemaining +
-                ", createdAt=" + createdAt +
-                ", resetPasswordToken='" + resetPasswordToken + '\'' +
-                ", resetPasswordTokenExpiry=" + resetPasswordTokenExpiry +
-                ", suspensionEndsAt=" + suspensionEndsAt +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        User user = (User) o;
-        return id != null && Objects.equals(id, user.id);
-    }
-
-    @Override
-    public int hashCode() {
-        // Usa una constante para asegurar que el hash de objetos no persistidos no sea 0.
-        return getClass().hashCode();
-    }
-
-    public boolean isSuspended() {
-        return suspensionEndsAt != null && suspensionEndsAt.isAfter(LocalDateTime.now());
-    }
-
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Agregamos "ROLE_" antes del nombre del rol
-        return Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + this.getRole().name()));
     }
 }
