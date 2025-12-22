@@ -1,23 +1,32 @@
 # --- Etapa 1: Construcción ---
-# Usamos una imagen de Maven con Java 17 para compilar nuestro proyecto
-FROM maven:3.8.5-openjdk-17 AS build
+# Usamos una imagen de Maven actualizada basada en Eclipse Temurin (más estable)
+FROM maven:3.9.6-eclipse-temurin-17 AS build
 
-# Copiamos todo el código fuente al contenedor
+# Establecemos un directorio de trabajo para mantener el orden
+WORKDIR /app
+
+# Copiamos el código
 COPY . .
 
-# Ejecutamos el comando de Maven para compilar y empaquetar la aplicación
-# '-DskipTests' acelera la construcción al omitir los tests
+# Compilamos
 RUN mvn clean package -DskipTests
 
 # --- Etapa 2: Ejecución ---
-# Usamos una imagen ligera de OpenJDK 17 para ejecutar la aplicación
-FROM openjdk:17-jdk-slim
+# REEMPLAZO: Usamos eclipse-temurin en lugar de openjdk (que está deprecado)
+# 'alpine' es la versión ultra ligera (equivalente a slim)
+FROM eclipse-temurin:17-jdk-alpine
 
-# Copiamos solo el archivo .jar compilado de la etapa anterior
-COPY --from=build /target/*.jar app.jar
+# Directorio de trabajo en el contenedor final
+WORKDIR /app
 
-# Exponemos el puerto en el que corre nuestra aplicación Spring Boot
+# Copiamos el JAR. Notar que agregamos "/app/" porque definimos el WORKDIR arriba
+COPY --from=build /app/target/*.jar app.jar
+
+# Creamos el directorio para las imágenes (para que no falle el FileStorageService)
+RUN mkdir -p uploads
+
+# Exponemos el puerto
 EXPOSE 8080
 
-# Comando que se ejecutará al iniciar el contenedor
-ENTRYPOINT ["java","-jar","/app.jar"]
+# Ejecutamos
+ENTRYPOINT ["java", "-jar", "app.jar"]
