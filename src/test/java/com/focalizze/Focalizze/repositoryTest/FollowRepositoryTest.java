@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.repositoryTest;
 
 import com.focalizze.Focalizze.models.UserRole;
 import com.focalizze.Focalizze.repository.FollowRepository;
+import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,8 +24,7 @@ import java.util.Set;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
-@SpringBootTest
-@Transactional
+@DataJpaTest
 public class FollowRepositoryTest {
     @Autowired
     private FollowRepository followRepository;
