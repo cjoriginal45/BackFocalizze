@@ -1,0 +1,86 @@
+package com.focalizze.Focalizze.utils;
+
+import org.springframework.lang.NonNull;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
+
+/**
+ * Filter that executes on every request to validate JWT tokens.
+ * Sets the authentication context if the token is valid.
+ * <p>
+ * Filtro que se ejecuta en cada petición para validar tokens JWT.
+ * Establece el contexto de autenticación si el token es válido.
+ */
+@Component
+public class JwtRequestFilter extends OncePerRequestFilter {
+
+    private final UserDetailsService userDetailsService;
+    private final JwtUtil jwtUtil;
+
+    public JwtRequestFilter(UserDetailsService userDetailsService, JwtUtil jwtUtil) {
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
+    }
+
+    @Override
+    protected void doFilterInternal(@NonNull HttpServletRequest request,
+                                    @NonNull HttpServletResponse response,
+                                    @NonNull FilterChain chain)
+            throws ServletException, IOException {
+
+        final String authorizationHeader = request.getHeader("Authorization");
+
+        String username = null;
+        String jwt = null;
+
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            jwt = authorizationHeader.substring(7);
+            try {
+                username = jwtUtil.extractUsername(jwt);
+            } catch (Exception e) {
+                // Si el token está mal formado o expirado, jwtUtil lanzará excepción.
+                // Logueamos o ignoramos, el contexto de seguridad quedará vacío.
+                logger.error("Error extrayendo username del token JWT", e);
+            }
+        }
+
+        if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
+            // Carga el usuario desde la BD (trae el tokenVersion actualizado)
+            UserDetails userDetails = this.userDetailsService.loadUserByUsername(username);
+
+            // Valida incluyendo la versión del token
+            if (jwtUtil.validateToken(jwt, userDetails)) {
+
+                // --- SEGURIDAD EXTRA: Rechazar si está baneado ---
+                if (!userDetails.isAccountNonLocked()) {
+                    // El usuario está baneado, no permitimos la autenticación
+                    response.sendError(HttpServletResponse.SC_FORBIDDEN, "Account is banned");
+                    return;
+                }
+
+                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+
+                UsernamePasswordAuthenticationToken usernamePasswordAuthenticationToken = new UsernamePasswordAuthenticationToken(
+                        userDetails, null, userDetails.getAuthorities());
+                usernamePasswordAuthenticationToken
+                        .setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(usernamePasswordAuthenticationToken);
+            }
+        }
+        chain.doFilter(request, response);
+    }
+}
+

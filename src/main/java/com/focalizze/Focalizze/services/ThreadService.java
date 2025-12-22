@@ -1,0 +1,21 @@
+package com.focalizze.Focalizze.services;
+
+import com.focalizze.Focalizze.dto.*;
+import com.focalizze.Focalizze.models.User;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.time.LocalDateTime;
+import java.util.List;
+
+public interface ThreadService {
+
+
+    FeedThreadDto getThreadByIdAndIncrementView(Long threadId);
+
+    void deleteThread(Long threadId, User currentUser);
+    ThreadResponseDto updateThread(Long threadId, ThreadUpdateRequestDto updateDto, User currentUser);
+
+    int getThreadsAvailableToday(User user);
+
+    ThreadResponseDto createThread(ThreadRequestDto requestDto, List<MultipartFile> files);
+}

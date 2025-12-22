@@ -1,0 +1,24 @@
+package com.focalizze.Focalizze.dto;
+
+import jakarta.persistence.Column;
+import org.springframework.stereotype.Component;
+
+
+public record UserDto(
+        Long id,
+        String username,
+        String displayName,
+        String avatarUrl,
+        Integer calculatedThreadCount,
+        boolean isFollowing,
+        Integer followingCount,
+        Integer followersCount,
+        boolean isBlocked,
+        String role,
+        boolean isTwoFactorEnabled,
+        String backgroundType,
+        String backgroundValue
+
+) {
+
+}
