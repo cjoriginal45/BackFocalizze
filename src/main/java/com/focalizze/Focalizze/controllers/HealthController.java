@@ -15,8 +15,6 @@ public class HealthController {
 
     @GetMapping
     public String checkHealth() {
-        // TRUCO: Hacemos una consulta ultra-ligera a la DB
-        // Esto obliga a Hibernate a abrir conexión y evita que Aiven se duerma.
         long count = userRepository.count();
 
         return "Backend OK. Usuarios en DB: " + count;
