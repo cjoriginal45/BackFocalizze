@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.configurations;
 
 import com.focalizze.Focalizze.utils.JwtRequestFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -37,6 +38,8 @@ public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
     private final AuthenticationProvider authenticationProvider;
 
+    @Value("${app.cors.allowed-origins:*}") // Por defecto acepta todo (*) si no hay variable
+    private String allowedOrigins;
     /**
      * Configures the security filter chain.
      * <p>
@@ -62,8 +65,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // A. RUTAS PÚBLICAS (Sin Token)
                         // Autenticación, Registro y 2FA
-                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         // Imágenes y recursos estáticos
                         .requestMatchers("/images/**", "/api/profiles/avatars/**").permitAll()
 
