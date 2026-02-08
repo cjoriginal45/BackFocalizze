@@ -17,7 +17,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
+import org.springframework.beans.factory.annotation.Value;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,8 +38,9 @@ public class SecurityConfig {
     private final JwtRequestFilter jwtRequestFilter;
     private final AuthenticationProvider authenticationProvider;
 
-    @Value("${app.cors.allowed-origins:*}") // Por defecto acepta todo (*) si no hay variable
+    @Value("${app.cors.allowed-origins:*}") 
     private String allowedOrigins;
+
     /**
      * Configures the security filter chain.
      * <p>
@@ -106,7 +107,7 @@ public class SecurityConfig {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Orígenes permitidos (Angular, React, Postman/Local)
-        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://localhost:3000", "http://localhost:8080"));
+         configuration.setAllowedOrigins(Arrays.asList(allowedOrigins.split(","))); 
 
         // Métodos HTTP permitidos
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
