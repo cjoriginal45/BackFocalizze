@@ -2,6 +2,7 @@ package com.focalizze.Focalizze.configurations;
 
 import com.focalizze.Focalizze.utils.JwtRequestFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -65,8 +66,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // A. RUTAS PÚBLICAS (Sin Token)
                         // Autenticación, Registro y 2FA
-                        .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         // Imágenes y recursos estáticos
                         .requestMatchers("/images/**", "/api/profiles/avatars/**").permitAll()
 
