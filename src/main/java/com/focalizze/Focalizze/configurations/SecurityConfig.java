@@ -65,7 +65,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // A. RUTAS PÚBLICAS (Sin Token)
                         // Autenticación, Registro y 2FA
-                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/auth/**", "/api/health").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         // Imágenes y recursos estáticos
                         .requestMatchers("/images/**", "/api/profiles/avatars/**").permitAll()
